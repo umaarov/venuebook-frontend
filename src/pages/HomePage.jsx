@@ -1,17 +1,29 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
+import {Link} from 'react-router-dom';
+import {useAppSelector} from '../app/hooks.js';
+import {selectCurrentUser} from '../features/auth/authSlice.js';
 
 const HomePage = () => {
-    const { user, isAuthenticated } = useSelector(state => state.auth);
+    const user = useAppSelector(selectCurrentUser);
     return (
-        <div>
-            <h1>Wedding Hall Reservation System</h1>
-            {isAuthenticated && user ? (
-                <p>Welcome back, {user.name}!</p>
+        <div className="container">
+            <h1>Welcome to the Wedding Hall Booking System</h1>
+            <p>
+                Find and book the perfect venue for your special day.
+            </p>
+            {user ? (
+                <p>Hello, {user.name}! What would you like to do today?</p>
             ) : (
-                <p>Please login or register to manage reservations.</p>
+                <p>Please <Link to="/login">login</Link> or <Link to="/register">register</Link> to make a booking or
+                    manage your halls.</p>
             )}
+            <div>
+                <Link to="/wedding-halls">
+                    <button>Browse Wedding Halls</button>
+                </Link>
+            </div>
         </div>
     );
 };
+
 export default HomePage;
