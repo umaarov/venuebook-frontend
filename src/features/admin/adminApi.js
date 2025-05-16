@@ -107,10 +107,34 @@ export const adminApi = coreApiAdmin.injectEndpoints({
             }, {type: 'AdminWeddingHall', id: 'LIST'}, {type: 'WeddingHall', id: 'LIST'}],
         }),
 
-        // Removed endpoints that don't have direct routes in api.php:
-        // adminGetAllUsers, adminGetUserById, adminUpdateUser, adminDeleteUser
-        // adminAssignOwnerRole, adminRevokeOwnerRole (replaced by adminAddOwner, specific revoke might be manual DB or new endpoint)
-        // adminGetAllReservations, adminGetReservationById, adminDeleteReservation
+        adminListAllReservations: builder.query({
+            query: (params) => ({
+                url: '/admin/reservations',
+                params: params,
+            }),
+            providesTags: (result) => {
+                if (result && result.data && result.data.data && Array.isArray(result.data.data)) {
+                    return [
+                        ...result.data.data.map(({id}) => ({type: 'AdminReservation', id})),
+                        {type: 'AdminReservation', id: 'LIST'},
+                    ];
+                }
+                return [{type: 'AdminReservation', id: 'LIST'}];
+            },
+        }),
+        adminCancelReservation: builder.mutation({
+            query: ({id, reason}) => ({
+                url: `/admin/reservations/${id}/cancel`,
+                method: 'POST',
+                body: {reason},
+            }),
+            invalidatesTags: (result, error, {id}) => [
+                {type: 'AdminReservation', id: 'LIST'},
+                {type: 'AdminReservation', id},
+                {type: 'Reservation', id: 'LIST'},
+                {type: 'OwnerReservation', id: 'LIST'}
+            ],
+        }),
     }),
 });
 
@@ -123,4 +147,6 @@ export const {
     useAdminDeleteWeddingHallMutation,
     useAdminApproveWeddingHallMutation,
     useAdminRejectWeddingHallMutation,
+    useAdminListAllReservationsQuery,
+    useAdminCancelReservationMutation,
 } = adminApi;

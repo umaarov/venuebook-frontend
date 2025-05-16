@@ -75,7 +75,6 @@ const WeddingHallDetailPage = () => {
         calendarDays.push(<div key={`empty-${i}`}
                                style={{border: '1px solid #eee', padding: '10px', minHeight: '60px'}}></div>);
     }
-
     for (let day = 1; day <= daysInCurrentMonth; day++) {
         const currentDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
         const dateString = format(currentDate, 'yyyy-MM-dd');

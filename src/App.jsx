@@ -24,7 +24,8 @@ import OwnerReservationsPage from './pages/owner/OwnerReservationsPage';
 // Admin Pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminWeddingHallsPage from './pages/admin/AdminWeddingHallsPage';
-import AdminManageOwnersPage from './pages/admin/AdminManageOwnersPage'; // New or revised page
+import AdminManageOwnersPage from './pages/admin/AdminManageOwnersPage';
+import AdminAllReservationsPage from "./pages/admin/AdminAllReservationsPage.jsx"; // New or revised page
 
 function App() {
     return (
@@ -69,6 +70,7 @@ function App() {
                         <Route path="/admin/wedding-halls/edit/:id"
                                element={<OwnerManageWeddingHallPage mode="edit"/>}/>
                         {/* <Route path="/admin/reservations" element={<AdminReservationsPage />} /> Removed if no route */}
+                        <Route path="/admin/reservations" element={<AdminAllReservationsPage/>}/>
                     </Route>
 
                     {/* Not Found Route */}

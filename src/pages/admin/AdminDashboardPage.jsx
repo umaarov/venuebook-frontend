@@ -14,7 +14,7 @@ const AdminDashboardPage = () => {
             <ul>
                 <li><Link to="/admin/owners">Manage Owners</Link></li>
                 <li><Link to="/admin/wedding-halls">Manage All Wedding Halls</Link></li>
-                {/* Reservation management for admin might require a specific endpoint or more complex logic */}
+                <li><Link to="/admin/reservations">Manage All Reservations</Link></li>
             </ul>
         </div>
     );
