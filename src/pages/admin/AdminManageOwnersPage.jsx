@@ -1,88 +1,122 @@
-import React, {useState} from 'react';
-import {useAdminListOwnersQuery, useAdminAddOwnerMutation} from '../../features/admin/adminApi';
-// If you have a general user list to pick from for making an owner:
-// import { useAdminGetAllUsersQuery } from '../../features/admin/adminApi'; // (This endpoint was removed as not in api.php)
-// For now, admin will input user ID directly.
+// File: src/pages/admin/AdminManageOwnersPage.jsx
+// Description: Page for Admin to list current owners and create new owner users. (CORRECTED)
+
+import React, { useState } from 'react';
+import { useAdminListOwnersQuery, useAdminAddOwnerMutation } from '../../features/admin/adminApi';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 
 const AdminManageOwnersPage = () => {
-    const {data: ownersResponse, isLoading: isLoadingOwners, error: ownersError, refetch} = useAdminListOwnersQuery();
-    const [addOwner, {isLoading: isAddingOwner, error: addOwnerError}] = useAdminAddOwnerMutation();
+    const { data: ownersResponse, isLoading: isLoadingOwners, error: ownersError, refetch } = useAdminListOwnersQuery();
+    const [addOwner, { isLoading: isAddingOwner, error: addOwnerError }] = useAdminAddOwnerMutation();
 
-    const [userIdToMakeOwner, setUserIdToMakeOwner] = useState('');
+    // State for the new owner creation form
+    const [name, setName] = useState('');
+    const [surname, setSurname] = useState('');
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+    const [password, setPassword] = useState('');
+    const [passwordConfirmation, setPasswordConfirmation] = useState('');
 
-    // If you had a general user list to select from:
-    // const { data: usersResponse, isLoading: isLoadingUsers, error: usersError } = useAdminGetAllUsersQuery();
-
-    const handleAddOwner = async (e) => {
+    const handleCreateOwnerSubmit = async (e) => {
         e.preventDefault();
-        if (!userIdToMakeOwner) {
-            alert('Please enter a User ID.');
+        if (password !== passwordConfirmation) {
+            alert("Passwords don't match!");
             return;
         }
         try {
-            await addOwner({user_id: parseInt(userIdToMakeOwner, 10)}).unwrap();
-            alert(`User ID ${userIdToMakeOwner} successfully made an owner.`);
-            setUserIdToMakeOwner('');
-            refetch();
+            await addOwner({
+                name,
+                surname,
+                username,
+                email,
+                phone,
+                password,
+                // password_confirmation is typically handled by Laravel's 'confirmed' rule,
+                // but it's good practice to send it if your FormRequest expects it or if you want to be explicit.
+                // Your WeddingHallOwnerRequest doesn't explicitly list password_confirmation, but the 'confirmed' rule implies it.
+                // Let's assume the backend handles it via the 'confirmed' rule on 'password'.
+                // If not, you might need to ensure your WeddingHallOwnerRequest includes:
+                // 'password' => 'required|string|min:8|confirmed', (and then you don't need to send password_confirmation explicitly)
+                // For now, we'll send what's directly in WeddingHallOwnerRequest's rules.
+            }).unwrap();
+            alert(`New owner user '${username}' created successfully.`);
+            // Clear form fields
+            setName('');
+            setSurname('');
+            setUsername('');
+            setEmail('');
+            setPhone('');
+            setPassword('');
+            setPasswordConfirmation('');
+            refetch(); // Refetch the list of owners
         } catch (err) {
-            alert(err.data?.message || 'Failed to make user an owner.');
-            console.error(err);
+            // addOwnerError from the hook will be populated and displayed by ErrorMessage
+            console.error('Failed to create new owner:', err);
         }
     };
 
-    if (isLoadingOwners /*|| isLoadingUsers*/) return <LoadingSpinner/>;
+    if (isLoadingOwners) return <LoadingSpinner />;
 
     const owners = ownersResponse?.data || [];
-    // const allUsers = usersResponse?.data || []; // If fetching all users
 
     return (
         <div className="container">
             <h2>Manage Owners</h2>
-            {ownersError && <ErrorMessage message={ownersError.data?.message || "Could not load owners."}/>}
-            {/* {usersError && <ErrorMessage message="Could not load users list." />} */}
+            {ownersError && <ErrorMessage message={ownersError.data?.message || "Could not load the list of owners."} />}
 
-            <form onSubmit={handleAddOwner} style={{marginBottom: '20px'}}>
-                <h3>Add New Owner</h3>
+            <form onSubmit={handleCreateOwnerSubmit} style={{ marginBottom: '30px', padding: '20px', border: '1px solid #eee', borderRadius: '5px' }}>
+                <h3>Create New Owner User</h3>
+                {addOwnerError && <ErrorMessage message={addOwnerError.data?.message || "Failed to create owner."} details={addOwnerError.data?.errors} />}
+
                 <div>
-                    <label htmlFor="userIdToMakeOwner">User ID to make Owner:</label>
-                    <input
-                        type="number"
-                        id="userIdToMakeOwner"
-                        value={userIdToMakeOwner}
-                        onChange={(e) => setUserIdToMakeOwner(e.target.value)}
-                        placeholder="Enter User ID"
-                        required
-                    />
+                    <label htmlFor="new-owner-name">Name:</label>
+                    <input type="text" id="new-owner-name" value={name} onChange={(e) => setName(e.target.value)} required />
                 </div>
-                {/* Alternative: Dropdown if `allUsers` is available
-        <select value={userIdToMakeOwner} onChange={(e) => setUserIdToMakeOwner(e.target.value)} required>
-            <option value="">Select User</option>
-            {allUsers.filter(u => u.role !== 'owner' && u.role !== 'admin').map(user => ( // Example filter
-                <option key={user.id} value={user.id}>{user.name} (ID: {user.id}, Email: {user.email})</option>
-            ))}
-        </select>
-        */}
-                <button type="submit" disabled={isAddingOwner}>
-                    {isAddingOwner ? 'Adding...' : 'Make Owner'}
+                <div>
+                    <label htmlFor="new-owner-surname">Surname:</label>
+                    <input type="text" id="new-owner-surname" value={surname} onChange={(e) => setSurname(e.target.value)} required />
+                </div>
+                <div>
+                    <label htmlFor="new-owner-username">Username:</label>
+                    <input type="text" id="new-owner-username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                </div>
+                <div>
+                    <label htmlFor="new-owner-email">Email:</label>
+                    <input type="email" id="new-owner-email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+                <div>
+                    <label htmlFor="new-owner-phone">Phone:</label>
+                    <input type="tel" id="new-owner-phone" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+                </div>
+                <div>
+                    <label htmlFor="new-owner-password">Password (min 8 chars):</label>
+                    <input type="password" id="new-owner-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength="8"/>
+                </div>
+                <div>
+                    <label htmlFor="new-owner-password-confirm">Confirm Password:</label>
+                    <input type="password" id="new-owner-password-confirm" value={passwordConfirmation} onChange={(e) => setPasswordConfirmation(e.target.value)} required />
+                </div>
+                <button type="submit" disabled={isAddingOwner} style={{marginTop: '10px'}}>
+                    {isAddingOwner ? 'Creating...' : 'Create Owner User'}
                 </button>
-                {addOwnerError && <ErrorMessage message={addOwnerError.data?.message || "Failed to add owner."}
-                                                details={addOwnerError.data?.errors}/>}
             </form>
 
             <h3>Current Owners</h3>
-            {owners.length === 0 ? (
-                <p>No users currently have the owner role.</p>
+            {owners.length === 0 && !isLoadingOwners ? (
+                <p>No owners found.</p>
             ) : (
                 <table>
                     <thead>
                     <tr>
                         <th>ID</th>
                         <th>Name</th>
-                        <th>Email</th>
+                        <th>Surname</th>
                         <th>Username</th>
-                        {/* Add actions like "Revoke Owner" if API supports */}
+                        <th>Email</th>
+                        <th>Phone</th>
+                        {/* Add other relevant owner details or actions (e.g., view their halls, edit owner details if possible) */}
                     </tr>
                     </thead>
                     <tbody>
@@ -90,8 +124,10 @@ const AdminManageOwnersPage = () => {
                         <tr key={owner.id}>
                             <td>{owner.id}</td>
                             <td>{owner.name}</td>
-                            <td>{owner.email}</td>
+                            <td>{owner.surname || 'N/A'}</td>
                             <td>{owner.username}</td>
+                            <td>{owner.email}</td>
+                            <td>{owner.phone || 'N/A'}</td>
                         </tr>
                     ))}
                     </tbody>
