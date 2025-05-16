@@ -1,69 +1,69 @@
-import React, {useState, useEffect} from 'react';
-import {useNavigate, useParams} from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
     useCreateOwnerWeddingHallMutation,
     useUpdateOwnerWeddingHallMutation,
-    useGetOwnerWeddingHallByIdQuery,
-    useDeleteWeddingHallImageMutation, // For deleting existing images
-    useUploadWeddingHallImagesMutation // For adding new images to existing hall
+    useDeleteWeddingHallImageMutation,
 } from '../../features/owner/ownerApi';
-import {useGetDistrictsQuery} from '../../features/weddingHalls/weddingHallApi';
+import { useGetWeddingHallByIdQuery } from '../../features/weddingHalls/weddingHallApi';
+import { useGetDistrictsQuery } from '../../features/weddingHalls/weddingHallApi';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 
-const OwnerManageWeddingHallPage = ({mode}) => { // mode: 'create' or 'edit'
+const OwnerManageWeddingHallPage = ({ mode }) => {
     const navigate = useNavigate();
-    const {id: hallId} = useParams(); // For edit mode
+    const { id: hallIdParam } = useParams();
 
     const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    const [location, setLocation] = useState('');
+    // const [description, setDescription] = useState(''); // Removed, not in WeddingHallRequest
+    const [address, setAddress] = useState(''); // Changed from location
     const [capacity, setCapacity] = useState('');
-    const [pricePerHour, setPricePerHour] = useState('');
+    const [pricePerSeat, setPricePerSeat] = useState(''); // Changed from pricePerHour
+    const [phone, setPhone] = useState(''); // Added phone field
     const [districtId, setDistrictId] = useState('');
-    const [images, setImages] = useState([]); // For new image uploads (File objects)
-    const [existingImages, setExistingImages] = useState([]); // For displaying/deleting existing images
+    const [images, setImages] = useState([]); // For new image uploads (File objects for create)
+    const [newImages, setNewImages] = useState([]); // For new image uploads (File objects for update)
+    const [primaryImageIndex, setPrimaryImageIndex] = useState(null); // Index of primary image in 'images' or 'newImages' array
+    const [existingImages, setExistingImages] = useState([]);
 
-    const {data: districtsData, isLoading: isLoadingDistricts} = useGetDistrictsQuery();
+    const { data: districtsResponse, isLoading: isLoadingDistricts } = useGetDistrictsQuery();
 
-    // Fetch hall data if in edit mode
-    const {
-        data: hallData,
-        isLoading: isLoadingHallDetails,
-        error: hallDetailsError,
-        refetch: refetchHallDetails
-    } = useGetOwnerWeddingHallByIdQuery(hallId, {
-        skip: mode === 'create', // Skip if creating
+    const { data: hallDetailResponse, isLoading: isLoadingHallDetails, error: hallDetailsError, refetch: refetchHallDetails } = useGetWeddingHallByIdQuery(hallIdParam, {
+        skip: mode === 'create' || !hallIdParam,
     });
 
-    const [createHall, {isLoading: isCreating, error: createError}] = useCreateOwnerWeddingHallMutation();
-    const [updateHall, {isLoading: isUpdating, error: updateError}] = useUpdateOwnerWeddingHallMutation();
-    const [deleteImage, {isLoading: isDeletingImage}] = useDeleteWeddingHallImageMutation();
-    // const [uploadImages, { isLoading: isUploadingImages }] = useUploadWeddingHallImagesMutation(); // If adding images separately
+    const [createHall, { isLoading: isCreating, error: createError }] = useCreateOwnerWeddingHallMutation();
+    const [updateHall, { isLoading: isUpdating, error: updateError }] = useUpdateOwnerWeddingHallMutation();
+    const [deleteImage, { isLoading: isDeletingImage, error: deleteImageError }] = useDeleteWeddingHallImageMutation();
 
     useEffect(() => {
-        if (mode === 'edit' && hallData?.data) {
-            const {
-                name,
-                description,
-                location,
-                capacity,
-                price_per_hour,
-                district_id,
-                images: hallImages
-            } = hallData.data;
-            setName(name || '');
-            setDescription(description || '');
-            setLocation(location || '');
-            setCapacity(capacity || '');
-            setPricePerHour(price_per_hour || '');
-            setDistrictId(district_id || '');
-            setExistingImages(hallImages || []);
+        if (mode === 'edit' && hallDetailResponse?.data) {
+            const hall = hallDetailResponse.data;
+            setName(hall.name || '');
+            setAddress(hall.address || '');
+            setCapacity(hall.capacity || '');
+            setPricePerSeat(hall.price_per_seat || '');
+            setPhone(hall.phone || '');
+            setDistrictId(hall.district_id || '');
+            setExistingImages(hall.images || []);
+            // Find primary image among existing images to pre-select if possible
+            const currentPrimary = hall.images?.findIndex(img => img.is_primary);
+            if (currentPrimary !== -1 && currentPrimary !== undefined) {
+                // This is tricky because primaryImageIndex refers to the *newly uploaded* array
+                // For now, we won't pre-fill primaryImageIndex based on existing primary,
+                // user has to re-select if they upload new images and want to change primary.
+            }
         }
-    }, [mode, hallData]);
+    }, [mode, hallDetailResponse]);
 
-    const handleImageChange = (e) => {
-        setImages([...e.target.files]);
+    const handleImageFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        if (mode === 'create') {
+            setImages(files);
+        } else {
+            setNewImages(files);
+        }
+        setPrimaryImageIndex(null); // Reset primary image selection when new files are chosen
     };
 
     const handleDeleteImage = async (imageId) => {
@@ -71,127 +71,112 @@ const OwnerManageWeddingHallPage = ({mode}) => { // mode: 'create' or 'edit'
             try {
                 await deleteImage(imageId).unwrap();
                 alert('Image deleted.');
-                // Refetch hall details to update the list of images
                 if (mode === 'edit') refetchHallDetails();
             } catch (err) {
-                alert('Failed to delete image.');
-                console.error(err);
+                alert(err.data?.message || 'Failed to delete image.');
             }
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const hallDetails = {
+        const hallPayload = {
             name,
-            description,
-            location,
+            address, // Changed from location
             capacity: parseInt(capacity, 10),
-            price_per_hour: parseFloat(pricePerHour),
+            price_per_seat: parseFloat(pricePerSeat), // Changed from price_per_hour
+            phone, // Added phone
             district_id: parseInt(districtId, 10),
         };
 
+        // Add primary_image index if selected
+        if (primaryImageIndex !== null && primaryImageIndex !== undefined) {
+            hallPayload.primary_image = parseInt(primaryImageIndex, 10);
+        }
+
         try {
             if (mode === 'create') {
-                // For create, images are part of the main hallData object for the mutation
-                await createHall({...hallDetails, images}).unwrap();
-                alert('Wedding hall created successfully!');
-            } else { // mode === 'edit'
-                // For update, decide how to handle images.
-                // The backend might expect 'new_images' field or a separate endpoint.
-                // Current updateOwnerWeddingHall mutation might need adjustment for FormData and images.
-                // For simplicity here, assuming updateHall can take 'new_images' if it's FormData based.
-                // Or, you'd call uploadWeddingHallImages separately after updating text fields.
-                await updateHall({id: hallId, ...hallDetails, ...(images.length > 0 && {new_images: images})}).unwrap();
+                // For create, 'images' field in payload should contain the FileList/Array of files
+                await createHall({ ...hallPayload, images: images }).unwrap();
+                alert('Wedding hall created successfully! It may require admin approval.');
+            } else {
+                // For update, 'new_images' field for new files. Existing images are handled by backend.
+                await updateHall({ id: hallIdParam, ...hallPayload, new_images: newImages }).unwrap();
                 alert('Wedding hall updated successfully!');
             }
             navigate('/owner/wedding-halls');
         } catch (err) {
             console.error('Failed to save wedding hall:', err);
-            // Error shown by ErrorMessage component
         }
     };
 
-    const isLoading = isLoadingDistricts || (mode === 'edit' && isLoadingHallDetails) || isCreating || isUpdating;
-    const error = createError || updateError || (mode === 'edit' && hallDetailsError);
+    const isLoadingSubmit = isCreating || isUpdating;
+    const submissionError = createError || updateError;
+    const pageLoading = isLoadingDistricts || (mode === 'edit' && isLoadingHallDetails);
 
-    if (isLoading && !districtsData) return <LoadingSpinner/>; // Show spinner if districts still loading
+    if (pageLoading) return <LoadingSpinner />;
+    const districts = districtsResponse?.data || [];
+    const currentImageFiles = mode === 'create' ? images : newImages;
+
 
     return (
         <div className="container">
             <h2>{mode === 'create' ? 'Add New' : 'Edit'} Wedding Hall</h2>
-            {error &&
-                <ErrorMessage message={error.data?.message || `Failed to ${mode} hall.`} details={error.data?.errors}/>}
+            {submissionError && <ErrorMessage message={submissionError.data?.message || `Failed to ${mode} hall.`} details={submissionError.data?.errors} />}
+            {hallDetailsError && mode === 'edit' && <ErrorMessage message={hallDetailsError.data?.message || "Failed to load hall details."} />}
+            {deleteImageError && <ErrorMessage message={deleteImageError.data?.message || "Failed to delete image."} />}
 
             <form onSubmit={handleSubmit}>
+                <div><label htmlFor="wh-name">Name:</label><input type="text" id="wh-name" value={name} onChange={(e) => setName(e.target.value)} required /></div>
+                {/* Description field removed */}
+                <div><label htmlFor="wh-address">Address:</label><input type="text" id="wh-address" value={address} onChange={(e) => setAddress(e.target.value)} required /></div>
+                <div><label htmlFor="wh-capacity">Capacity (guests):</label><input type="number" id="wh-capacity" value={capacity} onChange={(e) => setCapacity(e.target.value)} required min="1"/></div>
+                <div><label htmlFor="wh-pricePerSeat">Price Per Seat ($):</label><input type="number" step="0.01" id="wh-pricePerSeat" value={pricePerSeat} onChange={(e) => setPricePerSeat(e.target.value)} required min="0"/></div>
+                <div><label htmlFor="wh-phone">Phone:</label><input type="tel" id="wh-phone" value={phone} onChange={(e) => setPhone(e.target.value)} required /></div>
                 <div>
-                    <label htmlFor="name">Name:</label>
-                    <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} required/>
-                </div>
-                <div>
-                    <label htmlFor="description">Description:</label>
-                    <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)}
-                              required/>
-                </div>
-                <div>
-                    <label htmlFor="location">Location (Address):</label>
-                    <input type="text" id="location" value={location} onChange={(e) => setLocation(e.target.value)}
-                           required/>
-                </div>
-                <div>
-                    <label htmlFor="capacity">Capacity (guests):</label>
-                    <input type="number" id="capacity" value={capacity} onChange={(e) => setCapacity(e.target.value)}
-                           required/>
-                </div>
-                <div>
-                    <label htmlFor="pricePerHour">Price Per Hour ($):</label>
-                    <input type="number" step="0.01" id="pricePerHour" value={pricePerHour}
-                           onChange={(e) => setPricePerHour(e.target.value)} required/>
-                </div>
-                <div>
-                    <label htmlFor="districtId">District:</label>
-                    <select id="districtId" value={districtId} onChange={(e) => setDistrictId(e.target.value)} required>
+                    <label htmlFor="wh-districtId">District:</label>
+                    <select id="wh-districtId" value={districtId} onChange={(e) => setDistrictId(e.target.value)} required>
                         <option value="">Select District</option>
-                        {districtsData?.data?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label htmlFor="images">{mode === 'edit' ? 'Add New Images:' : 'Images:'}</label>
-                    <input type="file" id="images" multiple onChange={handleImageChange} accept="image/*"/>
-                    {mode === 'create' && <small>You can upload multiple images.</small>}
+                    <label htmlFor="wh-image-files">{mode === 'edit' ? 'Add New Images:' : 'Images:'}</label>
+                    <input type="file" id="wh-image-files" multiple onChange={handleImageFileChange} accept="image/*" />
                 </div>
+
+                {currentImageFiles.length > 0 && (
+                    <div>
+                        <label htmlFor="wh-primaryImageIndex">Select Primary Image (optional):</label>
+                        <select id="wh-primaryImageIndex" value={primaryImageIndex === null ? '' : primaryImageIndex} onChange={(e) => setPrimaryImageIndex(e.target.value === '' ? null : parseInt(e.target.value, 10))}>
+                            <option value="">None</option>
+                            {currentImageFiles.map((file, index) => (
+                                <option key={index} value={index}>
+                                    {file.name} (Image {index + 1})
+                                </option>
+                            ))}
+                        </select>
+                        <small>This will be the main display image.</small>
+                    </div>
+                )}
+
 
                 {mode === 'edit' && existingImages.length > 0 && (
                     <div>
                         <h4>Current Images:</h4>
-                        <div style={{display: 'flex', flexWrap: 'wrap', gap: '10px'}}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
                             {existingImages.map(img => (
-                                <div key={img.id}
-                                     style={{border: '1px solid #ccc', padding: '5px', textAlign: 'center'}}>
-                                    <img
-                                        src={img.image_path.startsWith('http') ? img.image_path : `http://localhost:8000${img.image_path}`}
-                                        alt="Hall"
-                                        style={{width: '100px', height: 'auto', marginBottom: '5px'}}
-                                        onError={(e) => {
-                                            e.target.onerror = null;
-                                            e.target.src = "https://placehold.co/100x75?text=Img";
-                                        }}
-                                    />
-                                    <button type="button" onClick={() => handleDeleteImage(img.id)}
-                                            disabled={isDeletingImage} className="danger small">Delete
-                                    </button>
+                                <div key={img.id} style={{ border: '1px solid #ccc', padding: '5px', textAlign: 'center', borderRadius: '4px' }}>
+                                    <img src={img.image_path.startsWith('http') ? img.image_path : `http://localhost:8000${img.image_path}`} alt="Hall" style={{ width: '100px', height: 'auto', marginBottom: '5px', borderRadius: '3px' }} onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/100x75?text=Img"; }}/>
+                                    <button type="button" onClick={() => handleDeleteImage(img.id)} disabled={isDeletingImage} className="danger small">Delete</button>
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
-
-                <button type="submit" disabled={isLoading}>
-                    {isLoading ? 'Saving...' : (mode === 'create' ? 'Create Hall' : 'Update Hall')}
-                </button>
+                <button type="submit" disabled={isLoadingSubmit}>{isLoadingSubmit ? 'Saving...' : (mode === 'create' ? 'Create Hall' : 'Update Hall')}</button>
             </form>
         </div>
     );
 };
-
 export default OwnerManageWeddingHallPage;

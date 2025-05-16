@@ -26,8 +26,8 @@ const authSlice = createSlice({
             removeCookieUser();
         },
         updateUserInState: (state, action) => {
-            state.user = { ...state.user, ...action.payload };
-            setCookieUser(state.user);
+            state.user = { ...state.user, ...action.payload }; // Merges new data with existing user data
+            setCookieUser(state.user); // Update cookie with the new complete user object
         }
     },
 });

@@ -20,7 +20,7 @@ export const api = createApi({
     baseQuery: baseQuery,
     tagTypes: [
         'User', 'AuthUser', 'WeddingHall', 'District', 'Reservation',
-        'OwnerWeddingHall', 'OwnerReservation', 'AdminUser',
+        'OwnerWeddingHall', 'OwnerReservation', 'AdminUser', 'AdminOwner',
         'AdminWeddingHall', 'AdminReservation'
     ], // Define tags for caching and invalidation
     endpoints: (builder) => ({

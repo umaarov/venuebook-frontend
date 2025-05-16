@@ -1,8 +1,8 @@
 import React from 'react';
-import {Link, useNavigate} from 'react-router-dom';
-import {useAppSelector, useAppDispatch} from '../app/hooks';
-import {selectIsAuthenticated, selectCurrentUser, logoutUser} from '../features/auth/authSlice';
-import {useLogoutMutation} from '../features/auth/authApi';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { selectIsAuthenticated, selectCurrentUser, logoutUser } from '../features/auth/authSlice';
+import { useLogoutMutation } from '../features/auth/authApi';
 
 const Navbar = () => {
     const isAuthenticated = useAppSelector(selectIsAuthenticated);
@@ -14,10 +14,8 @@ const Navbar = () => {
     const handleLogout = async () => {
         try {
             await logoutApiCall().unwrap();
-            // The onQueryStarted in logoutApi should dispatch logoutUser
         } catch (error) {
             console.error('Logout failed on API call:', error);
-            // Force logout on client if API call fails but we want to clear state
             dispatch(logoutUser());
         }
         navigate('/login');
@@ -41,15 +39,7 @@ const Navbar = () => {
                             <li><Link to="/admin/dashboard">Admin Dashboard</Link></li>
                         )}
                         <li>
-                            <button onClick={handleLogout} style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'white',
-                                cursor: 'pointer',
-                                padding: '14px 16px',
-                                fontSize: 'inherit'
-                            }}>Logout
-                            </button>
+                            <button onClick={handleLogout} style={{background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '14px 16px', fontSize: 'inherit', fontFamily: 'inherit'}}>Logout</button>
                         </li>
                     </>
                 ) : (

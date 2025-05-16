@@ -1,4 +1,3 @@
-// File: src/pages/WeddingHallsPage.jsx
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGetWeddingHallsQuery, useGetDistrictsQuery, useGetWeddingHallsByDistrictQuery } from '../features/weddingHalls/weddingHallApi';
@@ -7,41 +6,41 @@ import ErrorMessage from '../components/ErrorMessage';
 
 const WeddingHallsPage = () => {
     const [selectedDistrict, setSelectedDistrict] = useState('');
+    const [currentPage, setCurrentPage] = useState(1); // For pagination
 
-    const { data: districtsResponse, isLoading: isLoadingDistricts, error: districtsError } = useGetDistrictsQuery();
+    const { data: districtsData, isLoading: isLoadingDistricts, error: districtsError } = useGetDistrictsQuery();
+
+    // Pass page and district_id to useGetWeddingHallsQuery if selectedDistrict is empty
+    // Otherwise, useGetWeddingHallsByDistrictQuery will be used (which itself now points to /wedding-halls?district_id=X)
+    const queryParams = selectedDistrict ? { district_id: selectedDistrict, page: currentPage } : { page: currentPage };
 
     const { data: weddingHallsResponse, isLoading: isLoadingHalls, error: hallsError } =
-        selectedDistrict
-            ? useGetWeddingHallsByDistrictQuery(selectedDistrict) // Removed commonQueryOptions for simplicity, can be added back if needed
-            : useGetWeddingHallsQuery(); // Query params like page can be passed here if pagination is implemented in UI
+        useGetWeddingHallsQuery(queryParams); // Always use this, filter by district_id in params
 
     const isLoading = isLoadingDistricts || isLoadingHalls;
-    const error = districtsError || hallsError; // Combine errors
+    const error = districtsError || hallsError;
 
     if (isLoading) return <LoadingSpinner />;
-    // Display specific errors if helpful
-    if (districtsError) return <ErrorMessage message={`Could not load districts: ${districtsError.data?.message || districtsError.status}`} />;
-    if (hallsError) return <ErrorMessage message={`Could not load wedding halls: ${hallsError.data?.message || hallsError.status}`} />;
+    if (error) return <ErrorMessage message={hallsError?.data?.message || districtsError?.data?.message || "Could not load data."} />;
 
+    // Corrected data extraction for paginated wedding halls
+    const weddingHalls = weddingHallsResponse?.data?.data || []; // items are in .data.data
+    const paginationInfo = weddingHallsResponse?.data || {}; // links, meta, etc.
 
-    // Extract districts array
-    const districts = (districtsResponse && districtsResponse.data && Array.isArray(districtsResponse.data))
-        ? districtsResponse.data
-        : [];
+    const districts = districtsData?.data || []; // districts are in .data
 
-    // Extract wedding halls array based on which query was used
-    let weddingHalls = [];
-    if (weddingHallsResponse && weddingHallsResponse.data) {
-        if (selectedDistrict) {
-            // For getWeddingHallsByDistrictQuery, halls are in weddingHallsResponse.data (which is an array)
-            weddingHalls = Array.isArray(weddingHallsResponse.data) ? weddingHallsResponse.data : [];
-        } else {
-            // For getWeddingHallsQuery (paginated), halls are in weddingHallsResponse.data.data
-            weddingHalls = (weddingHallsResponse.data && Array.isArray(weddingHallsResponse.data.data))
-                ? weddingHallsResponse.data.data
-                : [];
+    const handlePreviousPage = () => {
+        if (paginationInfo.prev_page_url) {
+            setCurrentPage(prev => prev - 1);
         }
-    }
+    };
+
+    const handleNextPage = () => {
+        if (paginationInfo.next_page_url) {
+            setCurrentPage(prev => prev + 1);
+        }
+    };
+
 
     return (
         <div className="container">
@@ -52,8 +51,10 @@ const WeddingHallsPage = () => {
                 <select
                     id="district-filter"
                     value={selectedDistrict}
-                    onChange={(e) => setSelectedDistrict(e.target.value)}
-                    disabled={isLoadingDistricts || districts.length === 0}
+                    onChange={(e) => {
+                        setSelectedDistrict(e.target.value);
+                        setCurrentPage(1); // Reset to first page on filter change
+                    }}
                 >
                     <option value="">All Districts</option>
                     {districts.map(district => (
@@ -62,10 +63,10 @@ const WeddingHallsPage = () => {
                 </select>
             </div>
 
-            {weddingHalls.length === 0 && !isLoadingHalls && <p>No wedding halls found.</p>}
+            {weddingHalls.length === 0 && !isLoadingHalls && <p>No wedding halls found for the selected criteria.</p>}
 
             <ul className="item-list">
-                {weddingHalls.map((hall) => ( // This should now work
+                {weddingHalls.map((hall) => (
                     <li key={hall.id}>
                         <Link to={`/wedding-halls/${hall.id}`}>
                             <h3>{hall.name}</h3>
@@ -73,12 +74,23 @@ const WeddingHallsPage = () => {
                         <p>Location: {hall.location}</p>
                         <p>Capacity: {hall.capacity}</p>
                         <p>Price per hour: ${hall.price_per_hour}</p>
-                        {/* Display district name if available (hall.district might not be populated on list view) */}
-                        {/* If district name is needed, ensure backend includes it or fetch separately */}
+                        {hall.district && <p>District: {hall.district.name}</p>}
                     </li>
                 ))}
             </ul>
-            {/* TODO: Add pagination controls if !selectedDistrict and weddingHallsResponse.data.meta exists */}
+
+            {/* Pagination Controls */}
+            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                <button onClick={handlePreviousPage} disabled={!paginationInfo.prev_page_url || isLoadingHalls}>
+                    Previous
+                </button>
+                <span style={{ margin: '0 10px' }}>
+          Page {paginationInfo.current_page || 1} of {paginationInfo.last_page || 1}
+        </span>
+                <button onClick={handleNextPage} disabled={!paginationInfo.next_page_url || isLoadingHalls}>
+                    Next
+                </button>
+            </div>
         </div>
     );
 };

@@ -1,93 +1,94 @@
-import React, {useState, useEffect} from 'react';
-import {useGetAuthUserQuery, useUpdateAuthUserMutation} from '../features/auth/authApi';
-import {useAppSelector} from '../app/hooks';
-import {selectCurrentUser} from '../features/auth/authSlice';
+import React, { useState, useEffect } from 'react';
+import { useGetAuthUserProfileQuery, useUpdateAuthUserProfileMutation } from '../features/auth/authApi'; // Updated hook names
+import { useAppSelector } from '../app/hooks';
+import { selectCurrentUser } from '../features/auth/authSlice';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 
 const ProfilePage = () => {
-    const {data: user, isLoading, error, refetch} = useGetAuthUserQuery();
-    const currentUserFromSlice = useAppSelector(selectCurrentUser); // Get user from slice as fallback or for immediate display
+    // Use the renamed hook for fetching profile
+    const { data: profileData, isLoading, error: profileError, refetch } = useGetAuthUserProfileQuery();
+    const currentUserFromSlice = useAppSelector(selectCurrentUser);
 
-    const [updateUser, {isLoading: isUpdating, error: updateError}] = useUpdateAuthUserMutation();
+    const [updateProfile, { isLoading: isUpdating, error: updateError }] = useUpdateAuthUserProfileMutation(); // Updated hook name
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    // Add other updatable fields if necessary, e.g., password
-    // const [currentPassword, setCurrentPassword] = useState('');
-    // const [newPassword, setNewPassword] = useState('');
-    // const [newPasswordConfirmation, setNewPasswordConfirmation] = useState('');
-
+    const [username, setUsername] = useState(''); // Add username if it's part of the profile and updatable
 
     useEffect(() => {
-        // If query has not run or user is not in slice, useGetAuthUserQuery will fetch it.
-        // If user is already in slice (e.g. after login), we can prefill form.
-        const effectiveUser = user?.data || currentUserFromSlice;
+        // The actual user object is in profileData.data due to ApiResponser
+        const effectiveUser = profileData?.data || currentUserFromSlice;
         if (effectiveUser) {
             setName(effectiveUser.name || '');
             setEmail(effectiveUser.email || '');
+            setUsername(effectiveUser.username || ''); // Set username
         }
-    }, [user, currentUserFromSlice]);
+    }, [profileData, currentUserFromSlice]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const updateData = {name, email};
-        // if (newPassword && newPassword === newPasswordConfirmation) {
-        //   updateData.password = newPassword;
-        //   updateData.password_confirmation = newPasswordConfirmation;
-        //   if (currentPassword) updateData.current_password = currentPassword; // If backend requires it
-        // }
+        const updateData = { name, email, username }; // Include username in update
         try {
-            await updateUser(updateData).unwrap();
-            alert('Profile updated successfully!'); // Replace with better UI
-            refetch(); // Refetch user data after update
+            await updateProfile(updateData).unwrap();
+            alert('Profile updated successfully!');
+            refetch();
         } catch (err) {
             console.error('Failed to update profile:', err);
-            alert('Failed to update profile.'); // Replace with better UI
+            alert('Failed to update profile.');
         }
     };
 
-    if (isLoading) return <LoadingSpinner/>;
-    if (error) return <ErrorMessage message="Could not load profile."/>;
+    if (isLoading) return <LoadingSpinner />;
+    // profileData.data contains the user object
+    if (profileError) return <ErrorMessage message={`Could not load profile. ${profileError.data?.message || profileError.status}`} />;
 
-    const displayUser = user?.data || currentUserFromSlice;
+    const displayUser = profileData?.data || currentUserFromSlice;
 
     if (!displayUser) return <p>No user data available. You might need to log in.</p>;
-
 
     return (
         <div className="container">
             <h2>User Profile</h2>
             <p><strong>ID:</strong> {displayUser.id}</p>
             <p><strong>Name:</strong> {displayUser.name}</p>
+            <p><strong>Username:</strong> {displayUser.username}</p>
             <p><strong>Email:</strong> {displayUser.email}</p>
             <p><strong>Role:</strong> {displayUser.role}</p>
 
             <h3>Update Profile</h3>
-            {updateError && <ErrorMessage message={updateError.data?.message || 'Update failed.'}
-                                          details={updateError.data?.errors}/>}
+            {updateError && <ErrorMessage message={updateError.data?.message || 'Update failed.'} details={updateError.data?.errors} />}
             <form onSubmit={handleSubmit}>
                 <div>
-                    <label htmlFor="name">Name:</label>
+                    <label htmlFor="profileName">Name:</label>
                     <input
                         type="text"
-                        id="name"
+                        id="profileName"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
                     />
                 </div>
                 <div>
-                    <label htmlFor="email">Email:</label>
+                    <label htmlFor="profileUsername">Username:</label>
+                    <input
+                        type="text"
+                        id="profileUsername"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        required
+                    />
+                </div>
+                <div>
+                    <label htmlFor="profileEmail">Email:</label>
                     <input
                         type="email"
-                        id="email"
+                        id="profileEmail"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
                     />
                 </div>
-                {/* Add password change fields here if needed */}
                 <button type="submit" disabled={isUpdating}>
                     {isUpdating ? 'Updating...' : 'Update Profile'}
                 </button>

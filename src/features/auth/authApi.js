@@ -1,6 +1,5 @@
 import { api } from '../../services/apiCore';
 import { setUser, logoutUser, updateUserInState } from './authSlice';
-import {getToken} from "../../services/cookieService.js"; // Import actions
 
 export const authApi = api.injectEndpoints({
     endpoints: (builder) => ({
@@ -12,12 +11,15 @@ export const authApi = api.injectEndpoints({
             }),
             async onQueryStarted(arg, { dispatch, queryFulfilled }) {
                 try {
-                    const { data } = await queryFulfilled;
-                    // data should contain { user, token }
-                    dispatch(setUser({ user: data.data.user, token: data.data.token }));
+                    const { data: responseData } = await queryFulfilled;
+                    // Assuming backend returns { data: { user: {}, token: "..." }, message: "...", status: "..." }
+                    if (responseData.data && responseData.data.user && responseData.data.token) {
+                        dispatch(setUser({ user: responseData.data.user, token: responseData.data.token }));
+                    } else {
+                        console.error('Login response missing user or token in data field:', responseData);
+                    }
                 } catch (error) {
                     console.error('Login failed:', error);
-                    // Handle error display in component
                 }
             },
             invalidatesTags: ['AuthUser'],
@@ -26,13 +28,16 @@ export const authApi = api.injectEndpoints({
             query: (userData) => ({
                 url: '/register',
                 method: 'POST',
-                body: userData,
+                body: userData, // Should include name, username, email, password, password_confirmation
             }),
             async onQueryStarted(arg, { dispatch, queryFulfilled }) {
                 try {
-                    const { data } = await queryFulfilled;
-                    // data should contain { user, token }
-                    dispatch(setUser({ user: data.data.user, token: data.data.token }));
+                    const { data: responseData } = await queryFulfilled;
+                    if (responseData.data && responseData.data.user && responseData.data.token) {
+                        dispatch(setUser({ user: responseData.data.user, token: responseData.data.token }));
+                    } else {
+                        console.error('Register response missing user or token in data field:', responseData);
+                    }
                 } catch (error) {
                     console.error('Registration failed:', error);
                 }
@@ -48,49 +53,52 @@ export const authApi = api.injectEndpoints({
                 try {
                     await queryFulfilled;
                     dispatch(logoutUser());
-                    // Optionally, dispatch an action to clear other cached data
-                    // dispatch(api.util.resetApiState()); // This resets all RTK Query state
                 } catch (error) {
                     console.error('Logout failed:', error);
-                    // Fallback: still log out on client if server fails but token is invalid
-                    dispatch(logoutUser());
+                    dispatch(logoutUser()); // Force logout on client
                 }
             },
         }),
-        getAuthUser: builder.query({
-            query: () => '/profile',
+        getAuthUserProfile: builder.query({ // Renamed from getAuthUser to be more specific to /profile
+            query: () => '/profile', // Route for fetching authenticated user's profile
             providesTags: ['AuthUser'],
             async onQueryStarted(arg, { dispatch, queryFulfilled }) {
                 try {
-                    const { data } = await queryFulfilled;
-                    // If token is valid but user isn't in store (e.g. page refresh)
-                    // We need to get the token from cookie and user from this call
-                    // This part is tricky if token is already handled by setUser on login/register
-                    // This is more for validating token and refreshing user data
-                    const tokenFromCookie = getToken(); // from cookieService
-                    if (data.data && tokenFromCookie) {
-                        dispatch(setUser({ user: data.data, token: tokenFromCookie }));
+                    const { data: responseData } = await queryFulfilled;
+                    // Backend returns { data: USER_OBJECT, message: ..., status: ... } for /profile
+                    const tokenFromCookie = getToken();
+                    if (responseData.data && tokenFromCookie) {
+                        // If user is in responseData.data and token exists, update auth state
+                        // This ensures user object in Redux is fresh
+                        dispatch(setUser({ user: responseData.data, token: tokenFromCookie }));
+                    } else if (!responseData.data && tokenFromCookie) {
+                        // Token exists but no user data, implies token might be valid but profile fetch failed for other reasons
+                        // Or, if the /profile endpoint itself is what sets the user after a page refresh with a valid cookie
+                        console.warn('Auth user profile fetched, but no user data in response. Token still present.');
                     }
                 } catch (error) {
-                    console.error('Failed to fetch auth user, possibly invalid token:', error);
+                    console.error('Failed to fetch auth user profile, possibly invalid token:', error);
                     if (error.status === 401 || error.status === 403) {
-                        dispatch(logoutUser()); // Token is invalid or expired
+                        dispatch(logoutUser());
                     }
                 }
             },
         }),
-        updateAuthUser: builder.mutation({
+        updateAuthUserProfile: builder.mutation({ // Renamed from updateAuthUser
             query: (userData) => ({
-                url: '/profile',
-                method: 'PUT', // Laravel often uses PUT for full updates, PATCH for partial
+                url: '/profile', // Route for updating user's own profile
+                method: 'PUT',
                 body: userData,
             }),
             async onQueryStarted(arg, { dispatch, queryFulfilled }) {
                 try {
-                    const { data } = await queryFulfilled;
-                    dispatch(updateUserInState(data.data)); // Update user in authSlice
+                    const { data: responseData } = await queryFulfilled;
+                    // Expects backend to return the updated user object in responseData.data
+                    if (responseData.data) {
+                        dispatch(updateUserInState(responseData.data));
+                    }
                 } catch (error) {
-                    console.error('Update user failed:', error);
+                    console.error('Update user profile failed:', error);
                 }
             },
             invalidatesTags: ['AuthUser'],
@@ -102,6 +110,6 @@ export const {
     useLoginMutation,
     useRegisterMutation,
     useLogoutMutation,
-    useGetAuthUserQuery,
-    useUpdateAuthUserMutation,
+    useGetAuthUserProfileQuery, // Updated name
+    useUpdateAuthUserProfileMutation, // Updated name
 } = authApi;

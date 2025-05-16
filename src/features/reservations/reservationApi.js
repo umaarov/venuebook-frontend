@@ -1,50 +1,46 @@
-import {api} from '../../services/apiCore';
+import { api as coreApiReservation } from '../../services/apiCore';
 
-export const reservationApi = api.injectEndpoints({
+export const reservationApi = coreApiReservation.injectEndpoints({
     endpoints: (builder) => ({
-        getMyReservations: builder.query({
+        getMyReservations: builder.query({ // Corresponds to /my-reservations
             query: () => '/my-reservations',
             providesTags: (result) =>
-                result?.data
+                (result && result.data && Array.isArray(result.data))
                     ? [
-                        ...result.data.map(({id}) => ({type: 'Reservation', id})),
-                        {type: 'Reservation', id: 'LIST'},
+                        ...result.data.map(({ id }) => ({ type: 'Reservation', id })),
+                        { type: 'Reservation', id: 'LIST' },
                     ]
-                    : [{type: 'Reservation', id: 'LIST'}],
+                    : [{ type: 'Reservation', id: 'LIST' }],
         }),
-        getReservationById: builder.query({
+        getReservationById: builder.query({ // Corresponds to /reservations/{id}
             query: (id) => `/reservations/${id}`,
-            providesTags: (result, error, id) => [{type: 'Reservation', id}],
+            providesTags: (result, error, id) => [{ type: 'Reservation', id }],
         }),
-        createReservation: builder.mutation({
+        createReservation: builder.mutation({ // Corresponds to POST /reservations
             query: (reservationData) => ({
                 url: '/reservations',
                 method: 'POST',
                 body: reservationData,
             }),
-            invalidatesTags: [{type: 'Reservation', id: 'LIST'}, {type: 'OwnerReservation', id: 'LIST'}], // Invalidate user's and potentially owner's list
+            invalidatesTags: [
+                { type: 'Reservation', id: 'LIST' }, // User's reservations
+                { type: 'OwnerReservation', id: 'LIST' } // Potentially owner's reservations if they view all
+                // No AdminReservation LIST tag as admin list endpoint is not defined in provided routes
+            ],
         }),
-        updateReservation: builder.mutation({
-            query: ({id, ...reservationData}) => ({
-                url: `/reservations/${id}`,
-                method: 'PUT',
-                body: reservationData,
-            }),
-            invalidatesTags: (result, error, {id}) => [{type: 'Reservation', id}, {
-                type: 'Reservation',
-                id: 'LIST'
-            }, {type: 'OwnerReservation', id: 'LIST'}],
-        }),
-        deleteReservation: builder.mutation({
+        cancelReservation: builder.mutation({ // Corresponds to POST /reservations/{id}/cancel
             query: (id) => ({
-                url: `/reservations/${id}`,
-                method: 'DELETE',
+                url: `/reservations/${id}/cancel`,
+                method: 'POST',
             }),
-            invalidatesTags: (result, error, id) => [{type: 'Reservation', id: 'LIST'}, {
-                type: 'OwnerReservation',
-                id: 'LIST'
-            }],
+            invalidatesTags: (result, error, id) => [
+                { type: 'Reservation', id: 'LIST' },
+                { type: 'Reservation', id },
+                { type: 'OwnerReservation', id: 'LIST' }
+            ],
         }),
+        // Removed updateReservation as there's no general PUT /reservations/{id}
+        // Removed deleteReservation as there's no DELETE /reservations/{id}
     }),
 });
 
@@ -52,6 +48,5 @@ export const {
     useGetMyReservationsQuery,
     useGetReservationByIdQuery,
     useCreateReservationMutation,
-    useUpdateReservationMutation,
-    useDeleteReservationMutation,
+    useCancelReservationMutation, // Changed from useDeleteReservationMutation
 } = reservationApi;

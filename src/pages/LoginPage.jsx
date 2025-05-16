@@ -15,7 +15,7 @@ const LoginPage = () => {
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate('/profile'); // Redirect if already logged in
+            navigate('/profile');
         }
     }, [isAuthenticated, navigate]);
 
@@ -23,9 +23,7 @@ const LoginPage = () => {
         e.preventDefault();
         try {
             await login({ email, password }).unwrap();
-            // Navigation is handled by the useEffect or onQueryStarted in authApi
         } catch (err) {
-            // Error is handled by the `error` object from the hook
             console.error('Failed to login:', err);
         }
     };
@@ -35,7 +33,7 @@ const LoginPage = () => {
     return (
         <div className="container">
             <h2>Login</h2>
-            {error && <ErrorMessage message={error.data?.message || 'Login failed. Please check your credentials.'} />}
+            {error && <ErrorMessage message={error.data?.message || 'Login failed. Please check your credentials.'} details={error.data?.errors} />}
             <form onSubmit={handleSubmit}>
                 <div>
                     <label htmlFor="email">Email:</label>

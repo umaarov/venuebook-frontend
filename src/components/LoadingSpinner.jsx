@@ -1,9 +1,18 @@
 import React from 'react';
 
-const LoadingSpinner = ({message = "Loading..."}) => (
-    <div style={{textAlign: 'center', padding: '20px'}}>
+const LoadingSpinner = ({ message = "Loading..."}) => (
+    <div style={{ textAlign: 'center', padding: '20px', fontSize: '1.2em' }}>
         <p>{message}</p>
-        {/* You can add a CSS spinner animation here if desired */}
+        {/* Basic text spinner */}
+        <div style={{display: 'inline-block', animation: 'spin 1s linear infinite'}}>⏳</div>
+        <style>
+            {`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}
+        </style>
     </div>
 );
 

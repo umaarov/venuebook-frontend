@@ -1,7 +1,11 @@
-import React, {useState, useEffect} from 'react';
-import {useNavigate, useLocation} from 'react-router-dom';
-import {useCreateReservationMutation} from '../features/reservations/reservationApi';
-import {useGetWeddingHallsQuery} from '../features/weddingHalls/weddingHallApi'; // To select a hall if not pre-selected
+// File: src/pages/CreateReservationPage.jsx
+// Description: Page for creating a new reservation. (CORRECTED with all required fields)
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useCreateReservationMutation } from '../features/reservations/reservationApi';
+import { useGetWeddingHallsQuery } from '../features/weddingHalls/weddingHallApi';
+import { useAppSelector } from '../app/hooks'; // To get current user details
+import { selectCurrentUser } from '../features/auth/authSlice'; // To get current user details
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 
@@ -11,17 +15,24 @@ const CreateReservationPage = () => {
     const queryParams = new URLSearchParams(location.search);
     const preSelectedHallId = queryParams.get('hall_id');
     const preSelectedHallName = queryParams.get('hall_name');
+    const currentUser = useAppSelector(selectCurrentUser); // Get current user
 
     const [weddingHallId, setWeddingHallId] = useState(preSelectedHallId || '');
     const [reservationDate, setReservationDate] = useState('');
-    const [startTime, setStartTime] = useState('');
-    const [endTime, setEndTime] = useState('');
-    // total_price is usually calculated by backend based on hall's price_per_hour and duration
+    const [startTime, setStartTime] = useState(''); // Not in ReservationRequest, but likely used by backend service
+    const [endTime, setEndTime] = useState('');   // Not in ReservationRequest, but likely used by backend service
 
-    const [createReservation, {isLoading, error}] = useCreateReservationMutation();
-    const {data: hallsData, isLoading: isLoadingHalls, error: hallsError} = useGetWeddingHallsQuery(undefined, {
-        skip: !!preSelectedHallId, // Skip if a hall is pre-selected via query param
-    });
+    // Fields from ReservationRequest.php
+    const [numberOfGuests, setNumberOfGuests] = useState('');
+    const [customerName, setCustomerName] = useState(currentUser?.name || ''); // Pre-fill if available
+    const [customerSurname, setCustomerSurname] = useState(currentUser?.surname || ''); // Pre-fill if available (assuming surname exists on user model)
+    const [customerPhone, setCustomerPhone] = useState(currentUser?.phone || ''); // Pre-fill if available
+
+    const [createReservation, { isLoading, error }] = useCreateReservationMutation();
+    const { data: hallsResponse, isLoading: isLoadingHalls, error: hallsError } = useGetWeddingHallsQuery(
+        { page: 1, per_page: 100, status: 'approved' }, // Fetch approved halls for selection
+        { skip: !!preSelectedHallId }
+    );
 
     useEffect(() => {
         if (preSelectedHallId) {
@@ -29,51 +40,80 @@ const CreateReservationPage = () => {
         }
     }, [preSelectedHallId]);
 
+    useEffect(() => { // Pre-fill customer details if user changes
+        if (currentUser) {
+            if (!customerName) setCustomerName(currentUser.name || '');
+            // Assuming 'surname' might not be on your User model directly, adjust if needed
+            if (!customerSurname) setCustomerSurname(currentUser.surname || (currentUser.name ? currentUser.name.split(' ').slice(1).join(' ') : '') ); // Basic attempt for surname
+            if (!customerPhone) setCustomerPhone(currentUser.phone || '');
+        }
+    }, [currentUser, customerName, customerSurname, customerPhone ]);
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!weddingHallId || !reservationDate || !startTime || !endTime) {
+        // Ensure all fields required by ReservationRequest.php are included
+        if (!weddingHallId || !reservationDate || !numberOfGuests || !customerName || !customerSurname || !customerPhone /* || !startTime || !endTime */ ) {
+            // Note: startTime and endTime are not in your ReservationRequest.php rules but might be needed by your ReservationService.
+            // If they are not needed by the backend for validation, remove them from this check.
+            // For now, assuming your backend service might still use them implicitly.
             alert("Please fill all required fields.");
             return;
         }
         try {
-            await createReservation({
+            const payload = {
                 wedding_hall_id: weddingHallId,
                 reservation_date: reservationDate,
-                start_time: startTime,
-                end_time: endTime,
-            }).unwrap();
+                number_of_guests: parseInt(numberOfGuests, 10),
+                customer_name: customerName,
+                customer_surname: customerSurname,
+                customer_phone: customerPhone,
+                // Include start_time and end_time if your backend service uses them,
+                // even if not in ReservationRequest's validation rules directly.
+                // start_time: startTime,
+                // end_time: endTime,
+            };
+            // Your ReservationRequest.php does not list start_time and end_time as rules.
+            // If your backend service *does* need them, they should be added to ReservationRequest.php or handled carefully.
+            // For now, I'll assume they are not strictly validated but might be used by the service.
+            // If ReservationService DOES NOT use start/end time, you can remove them from the payload.
+            // Let's assume your service *does* need them for now:
+            if (startTime) payload.start_time = startTime;
+            if (endTime) payload.end_time = endTime;
+
+
+            await createReservation(payload).unwrap();
             alert('Reservation created successfully!');
             navigate('/my-reservations');
         } catch (err) {
+            // ErrorMessage component will display details from err.data.errors
             console.error('Failed to create reservation:', err);
-            // Error message will be shown by ErrorMessage component
         }
     };
 
-    if (isLoading || isLoadingHalls) return <LoadingSpinner/>;
+    if (isLoading || (isLoadingHalls && !preSelectedHallId)) return <LoadingSpinner />;
 
-    const weddingHalls = hallsData?.data || [];
+    const weddingHallsForDropdown = hallsResponse?.data?.data || [];
 
     return (
         <div className="container">
             <h2>Create Reservation {preSelectedHallName ? `for ${preSelectedHallName}` : ''}</h2>
-            {error && <ErrorMessage message={error.data?.message || 'Failed to create reservation.'}
-                                    details={error.data?.errors}/>}
-            {hallsError && !preSelectedHallId && <ErrorMessage message="Could not load wedding halls list."/>}
+            {error && <ErrorMessage message={error.data?.message || 'Failed to create reservation.'} details={error.data?.errors} />}
+            {hallsError && !preSelectedHallId && <ErrorMessage message={hallsError.data?.message || "Could not load wedding halls list."} />}
 
             <form onSubmit={handleSubmit}>
                 {!preSelectedHallId && (
                     <div>
-                        <label htmlFor="weddingHallId">Wedding Hall:</label>
+                        <label htmlFor="cr-weddingHallId">Wedding Hall:</label>
                         <select
-                            id="weddingHallId"
+                            id="cr-weddingHallId"
                             value={weddingHallId}
                             onChange={(e) => setWeddingHallId(e.target.value)}
                             required
                         >
-                            <option value="">Select a Hall</option>
-                            {weddingHalls.map(hall => (
-                                <option key={hall.id} value={hall.id}>{hall.name} (${hall.price_per_hour}/hr)</option>
+                            <option value="">Select an approved Hall</option>
+                            {weddingHallsForDropdown.map(hall => (
+                                <option key={hall.id} value={hall.id}>{hall.name} (${hall.price_per_seat}/seat)</option>
                             ))}
                         </select>
                     </div>
@@ -81,36 +121,83 @@ const CreateReservationPage = () => {
                 {preSelectedHallId && (
                     <div>
                         <p><strong>Selected Hall:</strong> {preSelectedHallName}</p>
-                        <input type="hidden" value={weddingHallId}/>
+                        <input type="hidden" value={weddingHallId} readOnly/>
                     </div>
                 )}
                 <div>
-                    <label htmlFor="reservationDate">Reservation Date:</label>
+                    <label htmlFor="cr-reservationDate">Reservation Date:</label>
                     <input
                         type="date"
-                        id="reservationDate"
+                        id="cr-reservationDate"
                         value={reservationDate}
+                        min={new Date().toISOString().split("T")[0]} // Prevent past dates
                         onChange={(e) => setReservationDate(e.target.value)}
                         required
                     />
                 </div>
+                {/* start_time and end_time are not in your ReservationRequest.php rules.
+            If your backend ReservationService doesn't actually use them, you can remove these fields.
+            If it does, they should ideally be part of the ReservationRequest validation.
+            For now, keeping them as optional inputs if your service expects them.
+        */}
                 <div>
-                    <label htmlFor="startTime">Start Time (e.g., 14:00):</label>
+                    <label htmlFor="cr-startTime">Start Time (optional, if applicable):</label>
                     <input
-                        type="time" // HH:MM format
-                        id="startTime"
+                        type="time"
+                        id="cr-startTime"
                         value={startTime}
                         onChange={(e) => setStartTime(e.target.value)}
+                        // required // Not in ReservationRequest
+                    />
+                </div>
+                <div>
+                    <label htmlFor="cr-endTime">End Time (optional, if applicable):</label>
+                    <input
+                        type="time"
+                        id="cr-endTime"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        // required // Not in ReservationRequest
+                    />
+                </div>
+                <div>
+                    <label htmlFor="cr-numberOfGuests">Number of Guests:</label>
+                    <input
+                        type="number"
+                        id="cr-numberOfGuests"
+                        value={numberOfGuests}
+                        onChange={(e) => setNumberOfGuests(e.target.value)}
+                        required
+                        min="1"
+                    />
+                </div>
+                <div>
+                    <label htmlFor="cr-customerName">Your Name (for reservation):</label>
+                    <input
+                        type="text"
+                        id="cr-customerName"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
                         required
                     />
                 </div>
                 <div>
-                    <label htmlFor="endTime">End Time (e.g., 18:00):</label>
+                    <label htmlFor="cr-customerSurname">Your Surname (for reservation):</label>
                     <input
-                        type="time" // HH:MM format
-                        id="endTime"
-                        value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
+                        type="text"
+                        id="cr-customerSurname"
+                        value={customerSurname}
+                        onChange={(e) => setCustomerSurname(e.target.value)}
+                        required
+                    />
+                </div>
+                <div>
+                    <label htmlFor="cr-customerPhone">Your Phone (for reservation):</label>
+                    <input
+                        type="tel"
+                        id="cr-customerPhone"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
                         required
                     />
                 </div>

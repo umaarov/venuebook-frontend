@@ -1,18 +1,19 @@
 import React from 'react';
-import {useParams, Link} from 'react-router-dom';
-import {useGetWeddingHallByIdQuery} from '../features/weddingHalls/weddingHallApi';
+import { useParams, Link } from 'react-router-dom';
+import { useGetWeddingHallByIdQuery } from '../features/weddingHalls/weddingHallApi';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 
 const WeddingHallDetailPage = () => {
-    const {id} = useParams();
-    const {data: weddingHallData, isLoading, error} = useGetWeddingHallByIdQuery(id);
+    const { id } = useParams();
+    const { data: weddingHallResponse, isLoading, error } = useGetWeddingHallByIdQuery(id);
 
-    if (isLoading) return <LoadingSpinner/>;
-    if (error) return <ErrorMessage message={`Could not load wedding hall details. Error: ${error.status}`}/>;
-    if (!weddingHallData || !weddingHallData.data) return <p>Wedding hall not found.</p>;
+    if (isLoading) return <LoadingSpinner />;
+    if (error) return <ErrorMessage message={error.data?.message || `Could not load wedding hall details. Error: ${error.status}`} />;
 
-    const hall = weddingHallData.data;
+    const hall = weddingHallResponse?.data; // Actual hall object is in .data
+
+    if (!hall) return <p>Wedding hall not found.</p>;
 
     return (
         <div className="container">
@@ -26,19 +27,14 @@ const WeddingHallDetailPage = () => {
 
             <h3>Images</h3>
             {hall.images && hall.images.length > 0 ? (
-                <div>
+                <div style={{display: 'flex', flexWrap: 'wrap', gap: '10px'}}>
                     {hall.images.map(image => (
-                        // Assuming image_path is a relative path from your Laravel public folder
-                        // For development with Vite proxy, this might need adjustment or full URLs from backend
                         <img
                             key={image.id}
-                            src={image.image_path.startsWith('http') ? image.image_path : `http://localhost:8000${image.image_path}`} // Adjust base URL if needed
+                            src={image.image_path.startsWith('http') ? image.image_path : `http://localhost:8000${image.image_path}`}
                             alt={`${hall.name} image`}
-                            style={{width: '200px', height: 'auto', margin: '5px', border: '1px solid #ccc'}}
-                            onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = "https://placehold.co/200x150?text=Image+Not+Found";
-                            }}
+                            style={{ width: '200px', height: 'auto', margin: '5px', border: '1px solid #ccc', borderRadius: '4px' }}
+                            onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/200x150?text=Image+Not+Found"; }}
                         />
                     ))}
                 </div>
@@ -46,12 +42,12 @@ const WeddingHallDetailPage = () => {
                 <p>No images available for this hall.</p>
             )}
 
-            <br/>
+            <br />
             <Link to={`/reservations/new?hall_id=${hall.id}&hall_name=${encodeURIComponent(hall.name)}`}>
-                <button>Book this Hall</button>
+                <button style={{marginTop: '10px'}}>Book this Hall</button>
             </Link>
-            <br/>
-            <Link to="/wedding-halls">Back to list</Link>
+            <br />
+            <Link to="/wedding-halls" style={{display: 'inline-block', marginTop: '10px'}}>Back to list</Link>
         </div>
     );
 };

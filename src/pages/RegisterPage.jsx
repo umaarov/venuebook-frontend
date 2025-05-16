@@ -1,5 +1,3 @@
-// File: src/pages/RegisterPage.jsx
-// Description: Registration page component.
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRegisterMutation } from '../features/auth/authApi';
@@ -20,20 +18,18 @@ const RegisterPage = () => {
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate('/profile'); // Redirect if already logged in
+            navigate('/profile');
         }
     }, [isAuthenticated, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (password !== passwordConfirmation) {
-            alert("Passwords don't match!"); // Replace with better UI feedback
+            alert("Passwords don't match!");
             return;
         }
         try {
-            // Include username in the registration payload
             await register({ name, username, email, password, password_confirmation: passwordConfirmation }).unwrap();
-            // Navigation is handled by useEffect or onQueryStarted in authApi
         } catch (err) {
             console.error('Failed to register:', err);
         }
@@ -56,7 +52,7 @@ const RegisterPage = () => {
                         required
                     />
                 </div>
-                <div> {/* Added username field */}
+                <div>
                     <label htmlFor="username">Username:</label>
                     <input
                         type="text"
@@ -84,7 +80,7 @@ const RegisterPage = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        minLength="8"
+                        minLength="8" // Assuming backend has min length validation
                     />
                 </div>
                 <div>
@@ -104,5 +100,4 @@ const RegisterPage = () => {
         </div>
     );
 };
-
 export default RegisterPage;

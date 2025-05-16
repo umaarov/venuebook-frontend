@@ -2,45 +2,49 @@ import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../app/hooks';
 import { selectIsAuthenticated, selectUserRole } from '../features/auth/authSlice';
-import { useGetAuthUserQuery } from '../features/auth/authApi'; // To ensure user data is fresh
+import { useGetAuthUserProfileQuery } from '../features/auth/authApi'; // Updated hook
 import LoadingSpinner from './LoadingSpinner';
 
 
 const PrivateRoute = ({ allowedRoles }) => {
     const location = useLocation();
     const isAuthenticated = useAppSelector(selectIsAuthenticated);
-    const userRole = useAppSelector(selectUserRole);
+    const userRole = useAppSelector(selectUserRole); // Role from Redux state
 
-    // Trigger user fetch if not already loaded or to validate token
-    // skip fetching if already authenticated and user role is present, unless you always want to validate
-    const { isLoading: isLoadingUser, data: authUserData, error: authUserError } = useGetAuthUserQuery(undefined, {
-        skip: !!(isAuthenticated && userRole), // Skip if we think we are good
+    // Use the renamed hook for fetching profile to validate token/session
+    const { isLoading: isLoadingUser, isError: isAuthError } = useGetAuthUserProfileQuery(undefined, {
+        skip: isAuthenticated && !!userRole, // Skip if already authenticated and role is known
+                                             // Consider not skipping if strict session validation on every private route access is desired
     });
 
 
-    if (isLoadingUser && !isAuthenticated) { // Show loading only if initial auth check is happening
+    if (isLoadingUser && !isAuthenticated) {
         return <LoadingSpinner message="Authenticating..." />;
     }
 
-    // If after loading, still not authenticated (e.g. token expired and logout dispatched by getAuthUser)
-    if (!isAuthenticated && !isLoadingUser) {
+    // After loading, if still not authenticated (e.g., token expired and logout dispatched by getAuthUserProfileQuery)
+    // or if there was an auth error (isAuthError is true)
+    if ((!isAuthenticated && !isLoadingUser) || (isAuthError && !isLoadingUser)) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     // If authenticated but role check is needed
-    if (isAuthenticated) {
-        if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
-            // User is authenticated but does not have the required role
-            // Redirect to a 'Forbidden' page or home page
-            alert("You do not have permission to access this page."); // Basic feedback
+    if (isAuthenticated && userRole) { // Ensure userRole is available
+        if (allowedRoles && !allowedRoles.includes(userRole)) {
+            alert("You do not have permission to access this page.");
             return <Navigate to="/" state={{ from: location }} replace />;
         }
-        // If role check passes or no specific roles required beyond authentication
         return <Outlet />;
     }
 
-    // Default fallback if none of the above hit (should ideally be covered)
-    // This might happen if isAuthenticated is false but isLoadingUser is also false (e.g. initial state before any check)
+    // Fallback if isAuthenticated is true but userRole is somehow not yet populated,
+    // or if still loading user profile to determine role.
+    // This state should ideally resolve quickly.
+    if (isAuthenticated && isLoadingUser) {
+        return <LoadingSpinner message="Verifying access..." />;
+    }
+
+    // Default fallback if none of the above conditions are met (e.g. initial load, not yet authenticated)
     return <Navigate to="/login" state={{ from: location }} replace />;
 };
 

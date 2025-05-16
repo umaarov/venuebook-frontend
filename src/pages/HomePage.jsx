@@ -1,7 +1,7 @@
 import React from 'react';
-import {Link} from 'react-router-dom';
-import {useAppSelector} from '../app/hooks.js';
-import {selectCurrentUser} from '../features/auth/authSlice.js';
+import { Link }from 'react-router-dom';
+import { useAppSelector } from '../app/hooks';
+import { selectCurrentUser } from '../features/auth/authSlice';
 
 const HomePage = () => {
     const user = useAppSelector(selectCurrentUser);
@@ -14,13 +14,10 @@ const HomePage = () => {
             {user ? (
                 <p>Hello, {user.name}! What would you like to do today?</p>
             ) : (
-                <p>Please <Link to="/login">login</Link> or <Link to="/register">register</Link> to make a booking or
-                    manage your halls.</p>
+                <p>Please <Link to="/login">login</Link> or <Link to="/register">register</Link> to make a booking or manage your halls.</p>
             )}
             <div>
-                <Link to="/wedding-halls">
-                    <button>Browse Wedding Halls</button>
-                </Link>
+                <Link to="/wedding-halls"><button>Browse Wedding Halls</button></Link>
             </div>
         </div>
     );

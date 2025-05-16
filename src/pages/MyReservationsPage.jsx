@@ -1,30 +1,30 @@
 import React from 'react';
-import {Link} from 'react-router-dom';
-import {useGetMyReservationsQuery, useDeleteReservationMutation} from '../features/reservations/reservationApi';
+import { Link } from 'react-router-dom';
+import { useGetMyReservationsQuery, useCancelReservationMutation } from '../features/reservations/reservationApi'; // Updated hook
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 
 const MyReservationsPage = () => {
-    const {data: reservationsData, isLoading, error, refetch} = useGetMyReservationsQuery();
-    const [deleteReservation, {isLoading: isDeleting}] = useDeleteReservationMutation();
+    const { data: reservationsResponse, isLoading, error, refetch } = useGetMyReservationsQuery();
+    const [cancelReservation, { isLoading: isCancelling }] = useCancelReservationMutation(); // Updated hook
 
-    const handleDelete = async (id) => {
+    const handleCancel = async (id) => {
         if (window.confirm('Are you sure you want to cancel this reservation?')) {
             try {
-                await deleteReservation(id).unwrap();
-                alert('Reservation cancelled.');
-                refetch(); // Or rely on tag invalidation
+                await cancelReservation(id).unwrap();
+                alert('Reservation cancelled successfully.');
+                refetch();
             } catch (err) {
-                alert('Failed to cancel reservation.');
+                alert(err.data?.message || 'Failed to cancel reservation.');
                 console.error(err);
             }
         }
     };
 
-    if (isLoading) return <LoadingSpinner/>;
-    if (error) return <ErrorMessage message="Could not load your reservations."/>;
+    if (isLoading) return <LoadingSpinner />;
+    if (error) return <ErrorMessage message={error.data?.message || "Could not load your reservations."} />;
 
-    const reservations = reservationsData?.data || [];
+    const reservations = reservationsResponse?.data || []; // Actual array is in .data
 
     return (
         <div className="container">
@@ -41,12 +41,11 @@ const MyReservationsPage = () => {
                             <p><strong>End Time:</strong> {reservation.end_time}</p>
                             <p><strong>Total Price:</strong> ${reservation.total_price}</p>
                             <p><strong>Status:</strong> {reservation.status}</p>
-                            {/* Add link to update reservation if feature exists */}
-                            {/* <Link to={`/reservations/edit/${reservation.id}`}>Edit</Link> */}
-                            <button onClick={() => handleDelete(reservation.id)} disabled={isDeleting}
-                                    className="danger">
-                                {isDeleting ? 'Cancelling...' : 'Cancel Reservation'}
-                            </button>
+                            {reservation.status !== 'cancelled' && reservation.status !== 'completed' && ( // Example condition
+                                <button onClick={() => handleCancel(reservation.id)} disabled={isCancelling} className="danger">
+                                    {isCancelling ? 'Cancelling...' : 'Cancel Reservation'}
+                                </button>
+                            )}
                         </li>
                     ))}
                 </ul>

@@ -1,19 +1,18 @@
-// File: src/features/weddingHalls/weddingHallApi.js
-import { api } from '../../services/apiCore';
+import { api as coreApiWedding } from '../../services/apiCore'; // Use alias
 
-export const weddingHallApi = api.injectEndpoints({
+export const weddingHallApi = coreApiWedding.injectEndpoints({
     endpoints: (builder) => ({
         getWeddingHalls: builder.query({
             query: (params) => ({
                 url: '/wedding-halls',
-                params,
+                params, // e.g., /wedding-halls?district_id=1&page=1
             }),
             providesTags: (result, error, arg) => {
-                // result.data is the server response: { status, message, data: { current_page, data: [...] } }
-                // The actual items are in result.data.data.data
-                if (result && result.data && result.data.data && Array.isArray(result.data.data.data)) {
+                // Paginated: items are in result.data.data (Laravel pagination)
+                // The overall response is { data: { current_page: ..., data: [ITEMS], ... }, message: ..., status: ... }
+                if (result && result.data && result.data.data && Array.isArray(result.data.data)) {
                     return [
-                        ...result.data.data.data.map(({ id }) => ({ type: 'WeddingHall', id })),
+                        ...result.data.data.map(({ id }) => ({ type: 'WeddingHall', id })),
                         { type: 'WeddingHall', id: 'LIST' },
                     ];
                 }
@@ -22,36 +21,35 @@ export const weddingHallApi = api.injectEndpoints({
         }),
         getWeddingHallById: builder.query({
             query: (id) => `/wedding-halls/${id}`,
-            providesTags: (result, error, id) => [{ type: 'WeddingHall', id }], // Assumes result.data is the single hall object, or this tag refers to the item itself
+            // Single item: result.data is the item
+            // The overall response is { data: ITEM, message: ..., status: ... }
+            providesTags: (result, error, id) => [{ type: 'WeddingHall', id }],
         }),
         getDistricts: builder.query({
             query: () => '/districts',
-            providesTags: (result) => {
-                // result.data is the server response: { status, message, data: [...] }
-                // The actual items are in result.data.data
-                if (result && result.data && Array.isArray(result.data.data)) {
-                    return [
-                        ...result.data.data.map(({ id }) => ({ type: 'District', id })),
+            providesTags: (result) =>
+                // Non-paginated array: items are in result.data
+                // The overall response is { data: [ITEMS], message: ..., status: ... }
+                (result && result.data && Array.isArray(result.data))
+                    ? [
+                        ...result.data.map(({ id }) => ({ type: 'District', id })),
                         { type: 'District', id: 'LIST' },
-                    ];
-                }
-                return [{ type: 'District', id: 'LIST' }];
-            },
+                    ]
+                    : [{ type: 'District', id: 'LIST' }],
         }),
-        getWeddingHallsByDistrict: builder.query({
-            query: (districtId) => `/districts/${districtId}/wedding-halls`,
+        getWeddingHallsByDistrict: builder.query({ // This endpoint is not in api.php, but kept for now if it's a client-side filter target
+            query: (districtId) => `/wedding-halls?district_id=${districtId}`, // Assumes backend filters by district_id query param on main /wedding-halls endpoint
             providesTags: (result, error, districtId) => {
-                // result.data is the server response: { status, message, data: [...] }
-                // The actual items are in result.data.data
-                if (result && result.data && Array.isArray(result.data.data)) {
+                // Assuming this also returns paginated structure if it hits /wedding-halls
+                if (result && result.data && result.data.data && Array.isArray(result.data.data)) {
                     return [
                         ...result.data.data.map(({ id }) => ({ type: 'WeddingHall', id })),
-                        { type: 'WeddingHall', id: 'LIST' }, // General list invalidation
-                        { type: 'District', id: districtId } // Specific district related data
+                        { type: 'WeddingHall', id: 'LIST' }, // General list
+                        { type: 'District', id: districtId } // For this specific district's list
                     ];
                 }
                 return [{ type: 'WeddingHall', id: 'LIST' }, { type: 'District', id: districtId }];
-            },
+            }
         }),
     }),
 });

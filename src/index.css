@@ -50,7 +50,10 @@ button.danger {
 button.danger:hover {
   background-color: #c82333; /* Darker Red */
 }
-
+button.small {
+  padding: 5px 10px;
+  font-size: 0.9em;
+}
 
 /* Basic navigation styling */
 nav ul {
@@ -97,4 +100,19 @@ ul.item-list li {
 }
 ul.item-list li:last-child {
   border-bottom: none;
+}
+
+/* Basic table styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+th {
+  background-color: #f2f2f2;
 }
