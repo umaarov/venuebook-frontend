@@ -1,17 +1,28 @@
-import { api as coreApiOwner } from '../../services/apiCore';
+import {api as coreApiOwner} from '../../services/apiCore';
 
 export const ownerApi = coreApiOwner.injectEndpoints({
     endpoints: (builder) => ({
         // GET /owner/wedding-halls - Fetches halls owned by the authenticated user
         getOwnerWeddingHalls: builder.query({
-            query: () => '/owner/wedding-halls',
-            providesTags: (result) =>
-                (result && result.data && Array.isArray(result.data))
-                    ? [
-                        ...result.data.map(({ id }) => ({ type: 'OwnerWeddingHall', id })),
-                        { type: 'OwnerWeddingHall', id: 'LIST' },
-                    ]
-                    : [{ type: 'OwnerWeddingHall', id: 'LIST' }],
+            // query: () => '/owner/wedding-halls',
+            query: (params) => ({
+                url: '/owner/wedding-halls',
+                params: params,
+            }),
+            providesTags: (result) => {
+                if (result && result.data && result.data.data && Array.isArray(result.data.data)) { // Paginated
+                    return [...result.data.data.map(({id}) => ({
+                        type: 'OwnerWeddingHall',
+                        id
+                    })), {type: 'OwnerWeddingHall', id: 'LIST'}];
+                } else if (result && result.data && Array.isArray(result.data)) { // Non-paginated
+                    return [...result.data.map(({id}) => ({type: 'OwnerWeddingHall', id})), {
+                        type: 'OwnerWeddingHall',
+                        id: 'LIST'
+                    }];
+                }
+                return [{type: 'OwnerWeddingHall', id: 'LIST'}];
+            },
         }),
         // POST /wedding-halls - Owner creates a new wedding hall (handled by WeddingHallController)
         createOwnerWeddingHall: builder.mutation({
@@ -33,13 +44,13 @@ export const ownerApi = coreApiOwner.injectEndpoints({
                 };
             },
             invalidatesTags: [
-                { type: 'OwnerWeddingHall', id: 'LIST' }, // Refresh owner's list
-                { type: 'WeddingHall', id: 'LIST' } // Refresh public list
+                {type: 'OwnerWeddingHall', id: 'LIST'}, // Refresh owner's list
+                {type: 'WeddingHall', id: 'LIST'} // Refresh public list
             ],
         }),
         // PUT /wedding-halls/{id} - Owner updates their wedding hall (handled by WeddingHallController)
         updateOwnerWeddingHall: builder.mutation({
-            query: ({ id, ...hallData }) => {
+            query: ({id, ...hallData}) => {
                 const formData = new FormData();
                 // Append standard fields
                 for (const key in hallData) {
@@ -60,14 +71,14 @@ export const ownerApi = coreApiOwner.injectEndpoints({
                     body: formData,
                 };
             },
-            invalidatesTags: (result, error, { id }) => [
-                { type: 'OwnerWeddingHall', id: 'LIST' }, { type: 'OwnerWeddingHall', id },
-                { type: 'WeddingHall', id: 'LIST' }, { type: 'WeddingHall', id }
+            invalidatesTags: (result, error, {id}) => [
+                {type: 'OwnerWeddingHall', id: 'LIST'}, {type: 'OwnerWeddingHall', id},
+                {type: 'WeddingHall', id: 'LIST'}, {type: 'WeddingHall', id}
             ],
         }),
         // POST /wedding-halls/{id}/images - Owner uploads images for their hall
         uploadWeddingHallImages: builder.mutation({
-            query: ({ weddingHallId, images }) => {
+            query: ({weddingHallId, images}) => {
                 const formData = new FormData();
                 Array.from(images).forEach(file => {
                     formData.append('images[]', file);
@@ -78,9 +89,9 @@ export const ownerApi = coreApiOwner.injectEndpoints({
                     body: formData,
                 };
             },
-            invalidatesTags: (result, error, { weddingHallId }) => [
-                { type: 'OwnerWeddingHall', id: weddingHallId }, { type: 'OwnerWeddingHall', id: 'LIST'},
-                { type: 'WeddingHall', id: weddingHallId }, { type: 'WeddingHall', id: 'LIST'}
+            invalidatesTags: (result, error, {weddingHallId}) => [
+                {type: 'OwnerWeddingHall', id: weddingHallId}, {type: 'OwnerWeddingHall', id: 'LIST'},
+                {type: 'WeddingHall', id: weddingHallId}, {type: 'WeddingHall', id: 'LIST'}
             ],
         }),
         // DELETE /wedding-halls/images/{imageId} - Owner deletes an image from their hall
@@ -90,8 +101,8 @@ export const ownerApi = coreApiOwner.injectEndpoints({
                 method: 'DELETE',
             }),
             invalidatesTags: (result, error, imageId) => [ // Need to be more specific if possible
-                { type: 'OwnerWeddingHall', id: 'LIST' },
-                { type: 'WeddingHall', id: 'LIST' }
+                {type: 'OwnerWeddingHall', id: 'LIST'},
+                {type: 'WeddingHall', id: 'LIST'}
             ],
         }),
         // GET /owner/reservations - Fetches reservations for halls owned by the authenticated user
@@ -103,10 +114,10 @@ export const ownerApi = coreApiOwner.injectEndpoints({
             providesTags: (result) =>
                 (result && result.data && Array.isArray(result.data))
                     ? [
-                        ...result.data.map(({ id }) => ({ type: 'OwnerReservation', id })),
-                        { type: 'OwnerReservation', id: 'LIST' },
+                        ...result.data.map(({id}) => ({type: 'OwnerReservation', id})),
+                        {type: 'OwnerReservation', id: 'LIST'},
                     ]
-                    : [{ type: 'OwnerReservation', id: 'LIST' }],
+                    : [{type: 'OwnerReservation', id: 'LIST'}],
         }),
         // POST /owner/reservations/{id}/cancel - Owner cancels a reservation for one of their halls
         cancelOwnerReservation: builder.mutation({
@@ -115,8 +126,8 @@ export const ownerApi = coreApiOwner.injectEndpoints({
                 method: 'POST',
             }),
             invalidatesTags: (result, error, id) => [
-                { type: 'OwnerReservation', id: 'LIST' }, { type: 'OwnerReservation', id },
-                { type: 'Reservation', id: 'LIST' } // Also invalidate general user's reservation list
+                {type: 'OwnerReservation', id: 'LIST'}, {type: 'OwnerReservation', id},
+                {type: 'Reservation', id: 'LIST'} // Also invalidate general user's reservation list
             ],
         }),
         // Removed getOwnerWeddingHallById as it's not a distinct owner route; use public /wedding-halls/{id}
