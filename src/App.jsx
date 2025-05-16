@@ -65,6 +65,9 @@ function App() {
                         {/* <Route path="/admin/users/edit/:id" element={<AdminManageUserPage />} /> Removed if no route */}
                         <Route path="/admin/owners" element={<AdminManageOwnersPage/>}/>
                         <Route path="/admin/wedding-halls" element={<AdminWeddingHallsPage/>}/>
+                        <Route path="/admin/wedding-halls/new" element={<OwnerManageWeddingHallPage mode="create"/>}/>
+                        <Route path="/admin/wedding-halls/edit/:id"
+                               element={<OwnerManageWeddingHallPage mode="edit"/>}/>
                         {/* <Route path="/admin/reservations" element={<AdminReservationsPage />} /> Removed if no route */}
                     </Route>
 

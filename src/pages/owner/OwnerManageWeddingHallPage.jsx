@@ -1,40 +1,61 @@
+// File: src/pages/owner/OwnerManageWeddingHallPage.jsx
+// (Showing only changes and relevant parts)
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-    useCreateOwnerWeddingHallMutation,
+    useCreateOwnerWeddingHallMutation, // For Owners
     useUpdateOwnerWeddingHallMutation,
     useDeleteWeddingHallImageMutation,
 } from '../../features/owner/ownerApi';
+import { useAdminCreateWeddingHallMutation, useAdminUpdateWeddingHallMutation } from '../../features/admin/adminApi'; // For Admins
 import { useGetWeddingHallByIdQuery } from '../../features/weddingHalls/weddingHallApi';
 import { useGetDistrictsQuery } from '../../features/weddingHalls/weddingHallApi';
+import { useAppSelector } from '../../app/hooks'; // To get current user role
+import { selectCurrentUser } from '../../features/auth/authSlice'; // To get current user
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
+// Potentially import a hook to get list of users (owners) if admin needs to select an owner_id from a list
+// For now, we'll assume admin inputs owner_id directly if needed.
+// import { useAdminListOwnersQuery } from '../../features/admin/adminApi';
+
 
 const OwnerManageWeddingHallPage = ({ mode }) => {
     const navigate = useNavigate();
     const { id: hallIdParam } = useParams();
+    const currentUser = useAppSelector(selectCurrentUser);
+    const isAdmin = currentUser?.role === 'admin';
 
     const [name, setName] = useState('');
-    // const [description, setDescription] = useState(''); // Removed, not in WeddingHallRequest
-    const [address, setAddress] = useState(''); // Changed from location
+    const [address, setAddress] = useState('');
     const [capacity, setCapacity] = useState('');
-    const [pricePerSeat, setPricePerSeat] = useState(''); // Changed from pricePerHour
-    const [phone, setPhone] = useState(''); // Added phone field
+    const [pricePerSeat, setPricePerSeat] = useState('');
+    const [phone, setPhone] = useState('');
     const [districtId, setDistrictId] = useState('');
-    const [images, setImages] = useState([]); // For new image uploads (File objects for create)
-    const [newImages, setNewImages] = useState([]); // For new image uploads (File objects for update)
-    const [primaryImageIndex, setPrimaryImageIndex] = useState(null); // Index of primary image in 'images' or 'newImages' array
+    const [images, setImages] = useState([]);
+    const [newImages, setNewImages] = useState([]);
+    const [primaryImageIndex, setPrimaryImageIndex] = useState(null);
     const [existingImages, setExistingImages] = useState([]);
+    const [ownerId, setOwnerId] = useState(''); // For Admin to specify owner_id
 
     const { data: districtsResponse, isLoading: isLoadingDistricts } = useGetDistrictsQuery();
-
     const { data: hallDetailResponse, isLoading: isLoadingHallDetails, error: hallDetailsError, refetch: refetchHallDetails } = useGetWeddingHallByIdQuery(hallIdParam, {
         skip: mode === 'create' || !hallIdParam,
     });
 
-    const [createHall, { isLoading: isCreating, error: createError }] = useCreateOwnerWeddingHallMutation();
-    const [updateHall, { isLoading: isUpdating, error: updateError }] = useUpdateOwnerWeddingHallMutation();
+    // Owner mutations
+    const [createOwnerHall, { isLoading: isCreatingOwner, error: createOwnerError }] = useCreateOwnerWeddingHallMutation();
+    const [updateOwnerHall, { isLoading: isUpdatingOwner, error: updateOwnerError }] = useUpdateOwnerWeddingHallMutation();
+
+    // Admin mutations
+    const [createAdminHall, { isLoading: isCreatingAdmin, error: createAdminError }] = useAdminCreateWeddingHallMutation();
+    const [updateAdminHall, { isLoading: isUpdatingAdmin, error: updateAdminError }] = useAdminUpdateWeddingHallMutation();
+
     const [deleteImage, { isLoading: isDeletingImage, error: deleteImageError }] = useDeleteWeddingHallImageMutation();
+
+    // If admin needs to select from a list of owners:
+    // const { data: ownersData, isLoading: isLoadingOwners } = useAdminListOwnersQuery(undefined, { skip: !isAdmin });
+
 
     useEffect(() => {
         if (mode === 'edit' && hallDetailResponse?.data) {
@@ -46,15 +67,11 @@ const OwnerManageWeddingHallPage = ({ mode }) => {
             setPhone(hall.phone || '');
             setDistrictId(hall.district_id || '');
             setExistingImages(hall.images || []);
-            // Find primary image among existing images to pre-select if possible
-            const currentPrimary = hall.images?.findIndex(img => img.is_primary);
-            if (currentPrimary !== -1 && currentPrimary !== undefined) {
-                // This is tricky because primaryImageIndex refers to the *newly uploaded* array
-                // For now, we won't pre-fill primaryImageIndex based on existing primary,
-                // user has to re-select if they upload new images and want to change primary.
+            if (isAdmin && hall.owner_id) { // Pre-fill owner_id for admin edit if available
+                setOwnerId(hall.owner_id.toString());
             }
         }
-    }, [mode, hallDetailResponse]);
+    }, [mode, hallDetailResponse, isAdmin]);
 
     const handleImageFileChange = (e) => {
         const files = Array.from(e.target.files);
@@ -63,72 +80,71 @@ const OwnerManageWeddingHallPage = ({ mode }) => {
         } else {
             setNewImages(files);
         }
-        setPrimaryImageIndex(null); // Reset primary image selection when new files are chosen
+        setPrimaryImageIndex(null);
     };
 
-    const handleDeleteImage = async (imageId) => {
-        if (window.confirm('Are you sure you want to delete this image?')) {
-            try {
-                await deleteImage(imageId).unwrap();
-                alert('Image deleted.');
-                if (mode === 'edit') refetchHallDetails();
-            } catch (err) {
-                alert(err.data?.message || 'Failed to delete image.');
-            }
-        }
-    };
+    const handleDeleteImage = async (imageId) => { /* ... existing logic ... */ };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const hallPayload = {
             name,
-            address, // Changed from location
+            address,
             capacity: parseInt(capacity, 10),
-            price_per_seat: parseFloat(pricePerSeat), // Changed from price_per_hour
-            phone, // Added phone
+            price_per_seat: parseFloat(pricePerSeat),
+            phone,
             district_id: parseInt(districtId, 10),
         };
 
-        // Add primary_image index if selected
         if (primaryImageIndex !== null && primaryImageIndex !== undefined) {
             hallPayload.primary_image = parseInt(primaryImageIndex, 10);
         }
 
+        if (isAdmin && ownerId) { // If admin is creating/editing and owner_id is set
+            hallPayload.owner_id = parseInt(ownerId, 10);
+        }
+
         try {
             if (mode === 'create') {
-                // For create, 'images' field in payload should contain the FileList/Array of files
-                await createHall({ ...hallPayload, images: images }).unwrap();
-                alert('Wedding hall created successfully! It may require admin approval.');
-            } else {
-                // For update, 'new_images' field for new files. Existing images are handled by backend.
-                await updateHall({ id: hallIdParam, ...hallPayload, new_images: newImages }).unwrap();
+                if (isAdmin) {
+                    await createAdminHall({ ...hallPayload, images: images }).unwrap();
+                } else { // Owner creating
+                    await createOwnerHall({ ...hallPayload, images: images }).unwrap();
+                }
+                alert('Wedding hall created successfully! It may require admin approval if not created by admin.');
+            } else { // mode === 'edit'
+                if (isAdmin) {
+                    await updateAdminHall({ id: hallIdParam, ...hallPayload, new_images: newImages }).unwrap();
+                } else { // Owner updating
+                    await updateOwnerHall({ id: hallIdParam, ...hallPayload, new_images: newImages }).unwrap();
+                }
                 alert('Wedding hall updated successfully!');
             }
-            navigate('/owner/wedding-halls');
+            navigate(isAdmin ? '/admin/wedding-halls' : '/owner/wedding-halls');
         } catch (err) {
             console.error('Failed to save wedding hall:', err);
         }
     };
 
-    const isLoadingSubmit = isCreating || isUpdating;
-    const submissionError = createError || updateError;
-    const pageLoading = isLoadingDistricts || (mode === 'edit' && isLoadingHallDetails);
+    const isLoadingSubmit = isCreatingOwner || isUpdatingOwner || isCreatingAdmin || isUpdatingAdmin;
+    const submissionError = createOwnerError || updateOwnerError || createAdminError || updateAdminError;
+    const pageLoading = isLoadingDistricts || (mode === 'edit' && isLoadingHallDetails); /* || (isAdmin && isLoadingOwners)*/
 
     if (pageLoading) return <LoadingSpinner />;
     const districts = districtsResponse?.data || [];
     const currentImageFiles = mode === 'create' ? images : newImages;
-
+    // const ownersList = ownersData?.data || []; // For admin dropdown
 
     return (
         <div className="container">
-            <h2>{mode === 'create' ? 'Add New' : 'Edit'} Wedding Hall</h2>
+            <h2>{mode === 'create' ? 'Add New' : 'Edit'} Wedding Hall {isAdmin ? '(Admin Mode)' : ''}</h2>
             {submissionError && <ErrorMessage message={submissionError.data?.message || `Failed to ${mode} hall.`} details={submissionError.data?.errors} />}
             {hallDetailsError && mode === 'edit' && <ErrorMessage message={hallDetailsError.data?.message || "Failed to load hall details."} />}
             {deleteImageError && <ErrorMessage message={deleteImageError.data?.message || "Failed to delete image."} />}
 
             <form onSubmit={handleSubmit}>
+                {/* ... existing form fields for name, address, capacity, pricePerSeat, phone, districtId ... */}
                 <div><label htmlFor="wh-name">Name:</label><input type="text" id="wh-name" value={name} onChange={(e) => setName(e.target.value)} required /></div>
-                {/* Description field removed */}
                 <div><label htmlFor="wh-address">Address:</label><input type="text" id="wh-address" value={address} onChange={(e) => setAddress(e.target.value)} required /></div>
                 <div><label htmlFor="wh-capacity">Capacity (guests):</label><input type="number" id="wh-capacity" value={capacity} onChange={(e) => setCapacity(e.target.value)} required min="1"/></div>
                 <div><label htmlFor="wh-pricePerSeat">Price Per Seat ($):</label><input type="number" step="0.01" id="wh-pricePerSeat" value={pricePerSeat} onChange={(e) => setPricePerSeat(e.target.value)} required min="0"/></div>
@@ -140,6 +156,30 @@ const OwnerManageWeddingHallPage = ({ mode }) => {
                         {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                 </div>
+
+                {/* Owner ID field for Admin */}
+                {isAdmin && (
+                    <div>
+                        <label htmlFor="wh-ownerId">Assign Owner (User ID - optional):</label>
+                        <input
+                            type="number"
+                            id="wh-ownerId"
+                            value={ownerId}
+                            onChange={(e) => setOwnerId(e.target.value)}
+                            placeholder="Enter User ID of Owner"
+                        />
+                        {/* Or a select dropdown for owners
+                <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)}>
+                    <option value="">Assign to self (Admin)</option>
+                    {ownersList.map(owner => (
+                        <option key={owner.id} value={owner.id}>{owner.name} (ID: {owner.id})</option>
+                    ))}
+                </select>
+                */}
+                    </div>
+                )}
+
+                {/* ... existing form fields for images, primaryImageIndex, existingImages ... */}
                 <div>
                     <label htmlFor="wh-image-files">{mode === 'edit' ? 'Add New Images:' : 'Images:'}</label>
                     <input type="file" id="wh-image-files" multiple onChange={handleImageFileChange} accept="image/*" />
@@ -179,4 +219,5 @@ const OwnerManageWeddingHallPage = ({ mode }) => {
         </div>
     );
 };
+
 export default OwnerManageWeddingHallPage;
