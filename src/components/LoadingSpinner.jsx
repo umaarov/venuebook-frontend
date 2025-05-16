@@ -3,7 +3,6 @@ import React from 'react';
 const LoadingSpinner = ({ message = "Loading..."}) => (
     <div style={{ textAlign: 'center', padding: '20px', fontSize: '1.2em' }}>
         <p>{message}</p>
-        {/* Basic text spinner */}
         <div style={{display: 'inline-block', animation: 'spin 1s linear infinite'}}>⏳</div>
         <style>
             {`

@@ -1,6 +1,3 @@
-// File: src/pages/admin/AdminManageOwnersPage.jsx
-// Description: Page for Admin to list current owners and create new owner users. (CORRECTED)
-
 import React, { useState } from 'react';
 import { useAdminListOwnersQuery, useAdminAddOwnerMutation } from '../../features/admin/adminApi';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -33,16 +30,9 @@ const AdminManageOwnersPage = () => {
                 email,
                 phone,
                 password,
-                // password_confirmation is typically handled by Laravel's 'confirmed' rule,
-                // but it's good practice to send it if your FormRequest expects it or if you want to be explicit.
-                // Your WeddingHallOwnerRequest doesn't explicitly list password_confirmation, but the 'confirmed' rule implies it.
-                // Let's assume the backend handles it via the 'confirmed' rule on 'password'.
-                // If not, you might need to ensure your WeddingHallOwnerRequest includes:
-                // 'password' => 'required|string|min:8|confirmed', (and then you don't need to send password_confirmation explicitly)
-                // For now, we'll send what's directly in WeddingHallOwnerRequest's rules.
+                // password_confirmation
             }).unwrap();
             alert(`New owner user '${username}' created successfully.`);
-            // Clear form fields
             setName('');
             setSurname('');
             setUsername('');
@@ -50,9 +40,8 @@ const AdminManageOwnersPage = () => {
             setPhone('');
             setPassword('');
             setPasswordConfirmation('');
-            refetch(); // Refetch the list of owners
+            refetch();
         } catch (err) {
-            // addOwnerError from the hook will be populated and displayed by ErrorMessage
             console.error('Failed to create new owner:', err);
         }
     };
@@ -116,7 +105,6 @@ const AdminManageOwnersPage = () => {
                         <th>Username</th>
                         <th>Email</th>
                         <th>Phone</th>
-                        {/* Add other relevant owner details or actions (e.g., view their halls, edit owner details if possible) */}
                     </tr>
                     </thead>
                     <tbody>

@@ -1,34 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { useGetAuthUserProfileQuery, useUpdateAuthUserProfileMutation } from '../features/auth/authApi'; // Updated hook names
-import { useAppSelector } from '../app/hooks';
-import { selectCurrentUser } from '../features/auth/authSlice';
+import React, {useState, useEffect} from 'react';
+import {useGetAuthUserProfileQuery, useUpdateAuthUserProfileMutation} from '../features/auth/authApi'; // Updated hook names
+import {useAppSelector} from '../app/hooks';
+import {selectCurrentUser} from '../features/auth/authSlice';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 
 const ProfilePage = () => {
-    // Use the renamed hook for fetching profile
-    const { data: profileData, isLoading, error: profileError, refetch } = useGetAuthUserProfileQuery();
+    const {data: profileData, isLoading, error: profileError, refetch} = useGetAuthUserProfileQuery();
     const currentUserFromSlice = useAppSelector(selectCurrentUser);
 
-    const [updateProfile, { isLoading: isUpdating, error: updateError }] = useUpdateAuthUserProfileMutation(); // Updated hook name
+    const [updateProfile, {isLoading: isUpdating, error: updateError}] = useUpdateAuthUserProfileMutation();
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [username, setUsername] = useState(''); // Add username if it's part of the profile and updatable
+    const [username, setUsername] = useState('');
 
     useEffect(() => {
-        // The actual user object is in profileData.data due to ApiResponser
         const effectiveUser = profileData?.data || currentUserFromSlice;
         if (effectiveUser) {
             setName(effectiveUser.name || '');
             setEmail(effectiveUser.email || '');
-            setUsername(effectiveUser.username || ''); // Set username
+            setUsername(effectiveUser.username || '');
         }
     }, [profileData, currentUserFromSlice]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const updateData = { name, email, username }; // Include username in update
+        const updateData = {name, email, username};
         try {
             await updateProfile(updateData).unwrap();
             alert('Profile updated successfully!');
@@ -39,9 +37,9 @@ const ProfilePage = () => {
         }
     };
 
-    if (isLoading) return <LoadingSpinner />;
-    // profileData.data contains the user object
-    if (profileError) return <ErrorMessage message={`Could not load profile. ${profileError.data?.message || profileError.status}`} />;
+    if (isLoading) return <LoadingSpinner/>;
+    if (profileError) return <ErrorMessage
+        message={`Could not load profile. ${profileError.data?.message || profileError.status}`}/>;
 
     const displayUser = profileData?.data || currentUserFromSlice;
 
@@ -57,7 +55,8 @@ const ProfilePage = () => {
             <p><strong>Role:</strong> {displayUser.role}</p>
 
             <h3>Update Profile</h3>
-            {updateError && <ErrorMessage message={updateError.data?.message || 'Update failed.'} details={updateError.data?.errors} />}
+            {updateError && <ErrorMessage message={updateError.data?.message || 'Update failed.'}
+                                          details={updateError.data?.errors}/>}
             <form onSubmit={handleSubmit}>
                 <div>
                     <label htmlFor="profileName">Name:</label>

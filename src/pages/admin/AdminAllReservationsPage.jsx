@@ -1,4 +1,3 @@
-// File: src/pages/admin/AdminAllReservationsPage.jsx
 import React, {useState, useEffect} from 'react';
 import {useAdminListAllReservationsQuery, useAdminCancelReservationMutation} from '../../features/admin/adminApi';
 import {useGetDistrictsQuery, useGetWeddingHallsQuery} from '../../features/weddingHalls/weddingHallApi'; // For filters
@@ -32,9 +31,8 @@ const AdminAllReservationsPage = () => {
     const {data: reservationsResponse, isLoading, error, refetch} = useAdminListAllReservationsQuery(queryParams);
     const [cancelReservation, {isLoading: isCancelling}] = useAdminCancelReservationMutation();
 
-    // For filter dropdowns
     const {data: districtsData} = useGetDistrictsQuery();
-    const {data: weddingHallsData} = useGetWeddingHallsQuery({per_page: 1000}); // Fetch all for filter; consider a dedicated light endpoint
+    const {data: weddingHallsData} = useGetWeddingHallsQuery({per_page: 1000});
 
     useEffect(() => {
         refetch();
@@ -168,7 +166,6 @@ const AdminAllReservationsPage = () => {
                     setSortBy('reservation_date');
                     setSortDirection('desc');
                     setCurrentPage(1);
-                    // refetch(); // useEffect will trigger refetch
                 }} style={{alignSelf: 'flex-end'}}>Clear Filters
                 </button>
             </div>
@@ -217,7 +214,6 @@ const AdminAllReservationsPage = () => {
                         ))}
                         </tbody>
                     </table>
-                    {/* Pagination Controls */}
                     {reservations.length > 0 && paginationInfo.last_page > 1 && (
                         <div style={{marginTop: '20px', textAlign: 'center'}}>
                             <button onClick={() => handlePageChange(currentPage - 1)}

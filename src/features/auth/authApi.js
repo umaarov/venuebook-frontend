@@ -1,5 +1,6 @@
-import { api } from '../../services/apiCore';
-import { setUser, logoutUser, updateUserInState } from './authSlice';
+import {api} from '../../services/apiCore';
+import {setUser, logoutUser, updateUserInState} from './authSlice';
+import {getToken} from "../../services/cookieService.js";
 
 export const authApi = api.injectEndpoints({
     endpoints: (builder) => ({
@@ -9,12 +10,11 @@ export const authApi = api.injectEndpoints({
                 method: 'POST',
                 body: credentials,
             }),
-            async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+            async onQueryStarted(arg, {dispatch, queryFulfilled}) {
                 try {
-                    const { data: responseData } = await queryFulfilled;
-                    // Assuming backend returns { data: { user: {}, token: "..." }, message: "...", status: "..." }
+                    const {data: responseData} = await queryFulfilled;
                     if (responseData.data && responseData.data.user && responseData.data.token) {
-                        dispatch(setUser({ user: responseData.data.user, token: responseData.data.token }));
+                        dispatch(setUser({user: responseData.data.user, token: responseData.data.token}));
                     } else {
                         console.error('Login response missing user or token in data field:', responseData);
                     }
@@ -28,13 +28,13 @@ export const authApi = api.injectEndpoints({
             query: (userData) => ({
                 url: '/register',
                 method: 'POST',
-                body: userData, // Should include name, username, email, password, password_confirmation
+                body: userData,
             }),
-            async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+            async onQueryStarted(arg, {dispatch, queryFulfilled}) {
                 try {
-                    const { data: responseData } = await queryFulfilled;
+                    const {data: responseData} = await queryFulfilled;
                     if (responseData.data && responseData.data.user && responseData.data.token) {
-                        dispatch(setUser({ user: responseData.data.user, token: responseData.data.token }));
+                        dispatch(setUser({user: responseData.data.user, token: responseData.data.token}));
                     } else {
                         console.error('Register response missing user or token in data field:', responseData);
                     }
@@ -49,31 +49,26 @@ export const authApi = api.injectEndpoints({
                 url: '/logout',
                 method: 'POST',
             }),
-            async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+            async onQueryStarted(arg, {dispatch, queryFulfilled}) {
                 try {
                     await queryFulfilled;
                     dispatch(logoutUser());
                 } catch (error) {
                     console.error('Logout failed:', error);
-                    dispatch(logoutUser()); // Force logout on client
+                    dispatch(logoutUser());
                 }
             },
         }),
-        getAuthUserProfile: builder.query({ // Renamed from getAuthUser to be more specific to /profile
-            query: () => '/profile', // Route for fetching authenticated user's profile
+        getAuthUserProfile: builder.query({
+            query: () => '/profile',
             providesTags: ['AuthUser'],
-            async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+            async onQueryStarted(arg, {dispatch, queryFulfilled}) {
                 try {
-                    const { data: responseData } = await queryFulfilled;
-                    // Backend returns { data: USER_OBJECT, message: ..., status: ... } for /profile
+                    const {data: responseData} = await queryFulfilled;
                     const tokenFromCookie = getToken();
                     if (responseData.data && tokenFromCookie) {
-                        // If user is in responseData.data and token exists, update auth state
-                        // This ensures user object in Redux is fresh
-                        dispatch(setUser({ user: responseData.data, token: tokenFromCookie }));
+                        dispatch(setUser({user: responseData.data, token: tokenFromCookie}));
                     } else if (!responseData.data && tokenFromCookie) {
-                        // Token exists but no user data, implies token might be valid but profile fetch failed for other reasons
-                        // Or, if the /profile endpoint itself is what sets the user after a page refresh with a valid cookie
                         console.warn('Auth user profile fetched, but no user data in response. Token still present.');
                     }
                 } catch (error) {
@@ -84,16 +79,15 @@ export const authApi = api.injectEndpoints({
                 }
             },
         }),
-        updateAuthUserProfile: builder.mutation({ // Renamed from updateAuthUser
+        updateAuthUserProfile: builder.mutation({
             query: (userData) => ({
-                url: '/profile', // Route for updating user's own profile
+                url: '/profile',
                 method: 'PUT',
                 body: userData,
             }),
-            async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+            async onQueryStarted(arg, {dispatch, queryFulfilled}) {
                 try {
-                    const { data: responseData } = await queryFulfilled;
-                    // Expects backend to return the updated user object in responseData.data
+                    const {data: responseData} = await queryFulfilled;
                     if (responseData.data) {
                         dispatch(updateUserInState(responseData.data));
                     }
@@ -110,6 +104,6 @@ export const {
     useLoginMutation,
     useRegisterMutation,
     useLogoutMutation,
-    useGetAuthUserProfileQuery, // Updated name
-    useUpdateAuthUserProfileMutation, // Updated name
+    useGetAuthUserProfileQuery,
+    useUpdateAuthUserProfileMutation,
 } = authApi;

@@ -10,7 +10,7 @@ const DistrictsPage = () => {
     if (isLoading) return <LoadingSpinner />;
     if (error) return <ErrorMessage message={error.data?.message || "Could not load districts."} />;
 
-    const districts = districtsResponse?.data || []; // Actual districts array is in .data
+    const districts = districtsResponse?.data || [];
 
     return (
         <div className="container">

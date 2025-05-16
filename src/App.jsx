@@ -3,7 +3,6 @@ import {Routes, Route, Navigate} from 'react-router-dom';
 import Navbar from './components/Navbar';
 import PrivateRoute from './components/PrivateRoute';
 
-// Page Components
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -15,25 +14,22 @@ import MyReservationsPage from './pages/MyReservationsPage';
 import CreateReservationPage from './pages/CreateReservationPage';
 import NotFoundPage from './pages/NotFoundPage';
 
-// Owner Pages
 import OwnerDashboardPage from './pages/owner/OwnerDashboardPage';
 import OwnerWeddingHallsPage from './pages/owner/OwnerWeddingHallsPage';
 import OwnerManageWeddingHallPage from './pages/owner/OwnerManageWeddingHallPage';
 import OwnerReservationsPage from './pages/owner/OwnerReservationsPage';
 
-// Admin Pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminWeddingHallsPage from './pages/admin/AdminWeddingHallsPage';
 import AdminManageOwnersPage from './pages/admin/AdminManageOwnersPage';
-import AdminAllReservationsPage from "./pages/admin/AdminAllReservationsPage.jsx"; // New or revised page
+import AdminAllReservationsPage from "./pages/admin/AdminAllReservationsPage.jsx";
 
 function App() {
     return (
         <>
             <Navbar/>
-            <div style={{padding: '20px'}}> {/* Basic padding */}
+            <div style={{padding: '20px'}}>
                 <Routes>
-                    {/* Public Routes */}
                     <Route path="/" element={<HomePage/>}/>
                     <Route path="/login" element={<LoginPage/>}/>
                     <Route path="/register" element={<RegisterPage/>}/>
@@ -41,16 +37,14 @@ function App() {
                     <Route path="/wedding-halls/:id" element={<WeddingHallDetailPage/>}/>
                     <Route path="/districts" element={<DistrictsPage/>}/>
 
-                    {/* User Protected Routes */}
                     <Route element={<PrivateRoute allowedRoles={['user', 'owner', 'admin']}/>}>
                         <Route path="/profile" element={<ProfilePage/>}/>
                         <Route path="/my-reservations" element={<MyReservationsPage/>}/>
                         <Route path="/reservations/new" element={<CreateReservationPage/>}/>
                     </Route>
 
-                    {/* Owner Protected Routes */}
                     <Route element={<PrivateRoute
-                        allowedRoles={['owner', 'admin']}/>}> {/* Admin can also access owner routes for management */}
+                        allowedRoles={['owner', 'admin']}/>}>
                         <Route path="/owner/dashboard" element={<OwnerDashboardPage/>}/>
                         <Route path="/owner/wedding-halls" element={<OwnerWeddingHallsPage/>}/>
                         <Route path="/owner/wedding-halls/new" element={<OwnerManageWeddingHallPage mode="create"/>}/>
@@ -59,21 +53,16 @@ function App() {
                         <Route path="/owner/reservations" element={<OwnerReservationsPage/>}/>
                     </Route>
 
-                    {/* Admin Protected Routes */}
                     <Route element={<PrivateRoute allowedRoles={['admin']}/>}>
                         <Route path="/admin/dashboard" element={<AdminDashboardPage/>}/>
-                        {/* <Route path="/admin/users" element={<AdminUsersPage />} /> Replaced or simplified */}
-                        {/* <Route path="/admin/users/edit/:id" element={<AdminManageUserPage />} /> Removed if no route */}
                         <Route path="/admin/owners" element={<AdminManageOwnersPage/>}/>
                         <Route path="/admin/wedding-halls" element={<AdminWeddingHallsPage/>}/>
                         <Route path="/admin/wedding-halls/new" element={<OwnerManageWeddingHallPage mode="create"/>}/>
                         <Route path="/admin/wedding-halls/edit/:id"
                                element={<OwnerManageWeddingHallPage mode="edit"/>}/>
-                        {/* <Route path="/admin/reservations" element={<AdminReservationsPage />} /> Removed if no route */}
                         <Route path="/admin/reservations" element={<AdminAllReservationsPage/>}/>
                     </Route>
 
-                    {/* Not Found Route */}
                     <Route path="*" element={<NotFoundPage/>}/>
                 </Routes>
             </div>

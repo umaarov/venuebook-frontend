@@ -8,13 +8,13 @@ export const adminApi = coreApiAdmin.injectEndpoints({
             providesTags: (result) =>
                 (result && result.data && Array.isArray(result.data))
                     ? [
-                        ...result.data.map(({id}) => ({type: 'AdminOwner', id})), // Assuming result.data is array of owner users
+                        ...result.data.map(({id}) => ({type: 'AdminOwner', id})),
                         {type: 'AdminOwner', id: 'LIST'},
                     ]
                     : [{type: 'AdminOwner', id: 'LIST'}],
         }),
-        adminAddOwner: builder.mutation({ // POST /admin/owners - Body should contain user_id to make them an owner
-            query: (userData) => ({ // Expects { user_id: X } or similar based on AdminController@addOwner
+        adminAddOwner: builder.mutation({ // POST /admin/owners
+            query: (userData) => ({
                 url: '/admin/owners',
                 method: 'POST',
                 body: userData,
@@ -22,20 +22,18 @@ export const adminApi = coreApiAdmin.injectEndpoints({
             invalidatesTags: [{type: 'AdminOwner', id: 'LIST'}, {
                 type: 'AdminUser',
                 id: 'LIST'
-            } /* if you have a general user list */],
+            }],
         }),
         adminAssociateOwnerWithHall: builder.mutation({ // POST /admin/associate-owner
-            query: (associationData) => ({ // Expects { owner_id: X, wedding_hall_id: Y }
+            query: (associationData) => ({
                 url: '/admin/associate-owner',
                 method: 'POST',
                 body: associationData,
             }),
-            invalidatesTags: [{type: 'AdminOwner', id: 'LIST'}, {type: 'OwnerWeddingHall', id: 'LIST'}], // Or more specific tags
+            invalidatesTags: [{type: 'AdminOwner', id: 'LIST'}, {type: 'OwnerWeddingHall', id: 'LIST'}],
         }),
 
         // Wedding Hall Management (Admin)
-        // Admin uses public GET /wedding-halls to list all. No specific /admin/wedding-halls for GET.
-        // Admin can create halls via POST /admin/wedding-halls (same as owner's POST /wedding-halls but with admin privileges)
         adminCreateWeddingHall: builder.mutation({ // POST /admin/wedding-halls
             query: (hallData) => {
                 const formData = new FormData();
@@ -52,7 +50,6 @@ export const adminApi = coreApiAdmin.injectEndpoints({
             },
             invalidatesTags: [{type: 'AdminWeddingHall', id: 'LIST'}, {type: 'WeddingHall', id: 'LIST'}],
         }),
-        // Admin can update halls via PUT /admin/wedding-halls/{id}
         adminUpdateWeddingHall: builder.mutation({ // PUT /admin/wedding-halls/{id}
             query: ({id, ...hallData}) => {
                 const formData = new FormData();
@@ -141,7 +138,6 @@ export const adminApi = coreApiAdmin.injectEndpoints({
 export const {
     useAdminListOwnersQuery,
     useAdminAddOwnerMutation,
-    useAdminAssociateOwnerWithHallMutation,
     useAdminCreateWeddingHallMutation,
     useAdminUpdateWeddingHallMutation,
     useAdminDeleteWeddingHallMutation,

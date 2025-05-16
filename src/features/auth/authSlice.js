@@ -1,8 +1,15 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { setToken as setCookieToken, removeToken as removeCookieToken, setUserData as setCookieUser, removeUserData as removeCookieUser, getToken, getUserData } from '../../services/cookieService';
+import {createSlice} from '@reduxjs/toolkit';
+import {
+    setToken as setCookieToken,
+    removeToken as removeCookieToken,
+    setUserData as setCookieUser,
+    removeUserData as removeCookieUser,
+    getToken,
+    getUserData
+} from '../../services/cookieService';
 
 const initialState = {
-    user: getUserData() || null, // User object { id, name, email, role, etc. }
+    user: getUserData() || null,
     token: getToken() || null,
     isAuthenticated: !!getToken(),
 };
@@ -26,17 +33,16 @@ const authSlice = createSlice({
             removeCookieUser();
         },
         updateUserInState: (state, action) => {
-            state.user = { ...state.user, ...action.payload }; // Merges new data with existing user data
-            setCookieUser(state.user); // Update cookie with the new complete user object
+            state.user = {...state.user, ...action.payload};
+            setCookieUser(state.user);
         }
     },
 });
 
-export const { setUser, logoutUser, updateUserInState } = authSlice.actions;
+export const {setUser, logoutUser, updateUserInState} = authSlice.actions;
 
 export default authSlice.reducer;
 
-// Selectors
 export const selectCurrentUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectUserRole = (state) => state.auth.user?.role;

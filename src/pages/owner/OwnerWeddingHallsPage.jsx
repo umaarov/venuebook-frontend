@@ -127,7 +127,6 @@ const OwnerWeddingHallsPage = () => {
                             </li>
                         ))}
                     </ul>
-                    {/* Pagination Controls - if owner's list is paginated */}
                     {halls.length > 0 && paginationInfo.last_page > 1 && (
                         <div style={{marginTop: '20px', textAlign: 'center'}}>
                             <button onClick={() => handlePageChange(currentPage - 1)}

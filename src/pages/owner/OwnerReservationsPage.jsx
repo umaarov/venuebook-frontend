@@ -1,5 +1,3 @@
-// File: src/pages/owner/OwnerReservationsPage.jsx
-// Description: Page for Owner to view reservations for their halls. (CORRECTED for pagination)
 import React, {useState} from 'react';
 import {
     useGetOwnerReservationsQuery,
@@ -73,7 +71,7 @@ const OwnerReservationsPage = () => {
                     value={selectedHallIdFilter}
                     onChange={(e) => {
                         setSelectedHallIdFilter(e.target.value);
-                        setCurrentPage(1); // Reset to first page on filter change
+                        setCurrentPage(1);
                     }}
                     disabled={isLoadingOwnerHalls || ownerHalls.length === 0}
                 >
@@ -89,7 +87,7 @@ const OwnerReservationsPage = () => {
             ) : (
                 <>
                     <ul className="item-list">
-                        {reservations.map((reservation) => ( // This should now work
+                        {reservations.map((reservation) => (
                             <li key={reservation.id}>
                                 <p><strong>Hall:</strong> {reservation.wedding_hall?.name || 'N/A'}</p>
                                 <p>
@@ -115,7 +113,6 @@ const OwnerReservationsPage = () => {
                             </li>
                         ))}
                     </ul>
-                    {/* Pagination Controls */}
                     {reservations.length > 0 && paginationInfo.last_page > 1 && (
                         <div style={{marginTop: '20px', textAlign: 'center'}}>
                             <button onClick={() => handlePageChange(currentPage - 1)}
