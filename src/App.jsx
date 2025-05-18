@@ -1,5 +1,5 @@
 import React from 'react';
-import {Routes, Route} from 'react-router-dom';
+import {Route, Routes} from 'react-router-dom';
 import Navbar from './components/Navbar';
 import PrivateRoute from './components/PrivateRoute';
 
@@ -41,8 +41,7 @@ function App() {
                         <Route element={<PrivateRoute allowedRoles={['user', 'owner', 'admin']}/>}>
                             <Route path="/profile" element={<ProfilePage/>}/>
                             <Route path="/my-reservations" element={<MyReservationsPage/>}/>
-                            <Route path="/reservations/new/:hallId"
-                                   element={<CreateReservationPage/>}/> {/* Added hallId example */}
+                            <Route path="/reservations/new" element={<CreateReservationPage/>}/>
                         </Route>
 
                         <Route element={<PrivateRoute allowedRoles={['owner', 'admin']}/>}>
