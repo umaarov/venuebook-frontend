@@ -1,1 +1,17 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+@theme {
+    --color-primary-light: #fbcfe8;
+    --color-primary: #ec4899;
+    --color-primary-dark: #be185d;
+    --color-secondary: #64748b;
+    --color-accent: #f59e0b;
+
+    --font-family-sans: 'Inter', sans-serif;
+}
+
+@plugin '@tailwindcss/forms';
+
+body {
+    @apply bg-gray-50 text-gray-800 antialiased;
+}
