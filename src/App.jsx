@@ -71,7 +71,6 @@ function App() {
             </main>
             <footer className="bg-gray-800 text-white text-center p-6 shadow-inner mt-auto">
                 <p>&copy; {new Date().getFullYear()} VenueBook. All rights reserved.</p>
-                <p className="text-sm text-gray-400">Crafted with ❤️ for your special moments.</p>
             </footer>
         </div>
     );
