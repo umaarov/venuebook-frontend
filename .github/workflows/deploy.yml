@@ -32,4 +32,4 @@ jobs:
           aws-region: eu-north-1
 
       - name: Deploy to S3
-        run: aws s3 sync dist/ s3://wedding-hall-frontend --delete
+        run: aws s3 sync dist/ s3://venuebook-frontend --delete
