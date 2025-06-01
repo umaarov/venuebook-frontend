@@ -53,8 +53,8 @@ const RegisterPage = () => {
         }
     };
 
-    const inputClass = "appearance-none relative block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-primary sm:text-sm transition-colors";
-    const labelClass = "block text-sm font-medium text-gray-700 mb-1 sr-only"; // Labels are sr-only due to placeholders + icons
+    const inputClass = "appearance-none relative block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-primary sm:text-sm transition-colors pl-10";
+    const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
     return (
         <div className="min-h-[calc(100vh-10rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

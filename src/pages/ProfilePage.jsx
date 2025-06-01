@@ -47,7 +47,8 @@ const ProfilePage = () => {
         resetUpdateError();
         const updateData = {name, email, username};
         try {
-            await updateProfile({profileData: updateData}).unwrap();
+            await updateProfile(updateData).unwrap();
+
             alert('Profile details updated successfully!');
             refetch();
         } catch (err) {
