@@ -26,23 +26,11 @@ export const ownerApi = coreApiOwner.injectEndpoints({
         }),
         // POST /wedding-halls
         createOwnerWeddingHall: builder.mutation({
-            query: (hallData) => {
-                const formData = new FormData();
-                Object.keys(hallData).forEach(key => {
-                    if (key === 'images' && hallData[key]) {
-                        Array.from(hallData[key]).forEach(file => {
-                            formData.append('images[]', file);
-                        });
-                    } else if (hallData[key] !== null && hallData[key] !== undefined) {
-                        formData.append(key, hallData[key]);
-                    }
-                });
-                return {
-                    url: '/wedding-halls',
-                    method: 'POST',
-                    body: formData,
-                };
-            },
+            query: ({data}) => ({
+                url: '/wedding-halls',
+                method: 'POST',
+                body: data,
+            }),
             invalidatesTags: [
                 {type: 'OwnerWeddingHall', id: 'LIST'},
                 {type: 'WeddingHall', id: 'LIST'}
@@ -50,25 +38,11 @@ export const ownerApi = coreApiOwner.injectEndpoints({
         }),
         // PUT /wedding-halls/{id}
         updateOwnerWeddingHall: builder.mutation({
-            query: ({id, ...hallData}) => {
-                const formData = new FormData();
-                for (const key in hallData) {
-                    if (key !== 'new_images' && key !== 'images' && hallData[key] !== null && hallData[key] !== undefined) {
-                        formData.append(key, hallData[key]);
-                    }
-                }
-                if (hallData.new_images && hallData.new_images.length > 0) {
-                    Array.from(hallData.new_images).forEach(file => {
-                        formData.append('new_images[]', file);
-                    });
-                }
-                formData.append('_method', 'PUT');
-                return {
-                    url: `/wedding-halls/${id}`,
-                    method: 'POST',
-                    body: formData,
-                };
-            },
+            query: ({id, data}) => ({
+                url: `/wedding-halls/${id}`,
+                method: 'POST',
+                body: data,
+            }),
             invalidatesTags: (result, error, {id}) => [
                 {type: 'OwnerWeddingHall', id: 'LIST'}, {type: 'OwnerWeddingHall', id},
                 {type: 'WeddingHall', id: 'LIST'}, {type: 'WeddingHall', id}

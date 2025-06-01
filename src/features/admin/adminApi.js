@@ -35,43 +35,26 @@ export const adminApi = coreApiAdmin.injectEndpoints({
 
         // Wedding Hall Management (Admin)
         adminCreateWeddingHall: builder.mutation({ // POST /admin/wedding-halls
-            query: (hallData) => {
-                const formData = new FormData();
-                Object.keys(hallData).forEach(key => {
-                    if (key === 'images' && hallData[key]) {
-                        Array.from(hallData[key]).forEach(file => {
-                            formData.append('images[]', file);
-                        });
-                    } else if (hallData[key] !== null && hallData[key] !== undefined) {
-                        formData.append(key, hallData[key]);
-                    }
-                });
-                return {url: '/admin/wedding-halls', method: 'POST', body: formData};
-            },
+            query: ({data}) => ({
+                url: '/admin/wedding-halls',
+                method: 'POST',
+                body: data,
+            }),
             invalidatesTags: [{type: 'AdminWeddingHall', id: 'LIST'}, {type: 'WeddingHall', id: 'LIST'}],
         }),
+
         adminUpdateWeddingHall: builder.mutation({ // PUT /admin/wedding-halls/{id}
-            query: ({id, ...hallData}) => {
-                const formData = new FormData();
-                // Append standard fields
-                for (const key in hallData) {
-                    if (key !== 'new_images' && key !== 'images' && hallData[key] !== null && hallData[key] !== undefined) {
-                        formData.append(key, hallData[key]);
-                    }
-                }
-                if (hallData.new_images && hallData.new_images.length > 0) {
-                    Array.from(hallData.new_images).forEach(file => {
-                        formData.append('new_images[]', file);
-                    });
-                }
-                formData.append('_method', 'PUT');
-                return {url: `/admin/wedding-halls/${id}`, method: 'POST', body: formData};
-            },
+            query: ({id, data}) => ({
+                url: `/admin/wedding-halls/${id}`,
+                method: 'POST',
+                body: data,
+            }),
             invalidatesTags: (r, e, {id}) => [{type: 'AdminWeddingHall', id}, {
                 type: 'AdminWeddingHall',
                 id: 'LIST'
             }, {type: 'WeddingHall', id}, {type: 'WeddingHall', id: 'LIST'}],
         }),
+
         adminDeleteWeddingHall: builder.mutation({ // DELETE /admin/wedding-halls/{id}
             query: (id) => ({
                 url: `/admin/wedding-halls/${id}`,
