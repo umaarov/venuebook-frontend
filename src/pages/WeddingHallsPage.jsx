@@ -144,7 +144,7 @@ const WeddingHallsPage = () => {
                                 <Link to={`/wedding-halls/${hall.id}`} className="block">
                                     {primaryImage ? (
                                         <img
-                                            src={primaryImage.image_path.startsWith('http') ? primaryImage.image_path : `http://localhost:8000${primaryImage.image_path}`}
+                                            src={primaryImage.image_path.startsWith('http') ? primaryImage.image_path : `http://localhost:8000/storage/${primaryImage.image_path}`}
                                             alt={hall.name}
                                             className="w-full h-56 object-cover transform group-hover:scale-105 transition-transform duration-300"
                                             onError={(e) => {

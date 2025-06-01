@@ -171,7 +171,7 @@ const WeddingHallDetailPage = () => {
                     {primaryImage ? (
                         <div className="aspect-w-16 aspect-h-9 rounded-xl shadow-lg overflow-hidden">
                             <img
-                                src={primaryImage.image_path.startsWith('http') ? primaryImage.image_path : `http://localhost:8000${primaryImage.image_path}`}
+                                src={primaryImage.image_path.startsWith('http') ? primaryImage.image_path : `http://localhost:8000/storage/${primaryImage.image_path}`}
                                 alt={hall.name} className="w-full h-full object-cover" onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.src = "https://placehold.co/800x450?text=Venue+Image";
@@ -186,11 +186,11 @@ const WeddingHallDetailPage = () => {
 
                     {otherImages.length > 0 && (
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-4">
-                            {otherImages.slice(0, 5).map(image => ( // Show up to 5 other images
+                            {otherImages.slice(0, 5).map(image => (
                                 <div key={image.id}
                                      className="aspect-w-1 aspect-h-1 rounded-lg shadow-md overflow-hidden">
                                     <img
-                                        src={image.image_path.startsWith('http') ? image.image_path : `http://localhost:8000${image.image_path}`}
+                                        src={image.image_path.startsWith('http') ? image.image_path : `http://localhost:8000/storage/${image.image_path}`}
                                         alt={`${hall.name} additional image`}
                                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                                         onError={(e) => {
