@@ -5,14 +5,17 @@ import {
     useDeleteWeddingHallImageMutation,
     useUpdateOwnerWeddingHallMutation,
 } from '../../features/owner/ownerApi';
-import {useAdminCreateWeddingHallMutation, useAdminUpdateWeddingHallMutation} from '../../features/admin/adminApi'; // For Admin
+import {
+    useAdminCreateWeddingHallMutation,
+    useAdminListOwnersQuery,
+    useAdminUpdateWeddingHallMutation
+} from '../../features/admin/adminApi'; // For Admin
 import {useGetDistrictsQuery, useGetWeddingHallByIdQuery} from '../../features/weddingHalls/weddingHallApi';
 import {useAppSelector} from '../../app/hooks';
 import {selectCurrentUser} from '../../features/auth/authSlice';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import {CheckCircleIcon, PhotoIcon, PlusCircleIcon, TrashIcon} from '@heroicons/react/24/solid';
-// import { useAdminListOwnersQuery } from '../../features/admin/adminApi';
 
 const OwnerManageWeddingHallPage = ({mode}) => {
     const navigate = useNavigate();
@@ -64,7 +67,7 @@ const OwnerManageWeddingHallPage = ({mode}) => {
 
     const [deleteImage, {isLoading: isDeletingImage, error: deleteImageError}] = useDeleteWeddingHallImageMutation();
 
-    // const { data: ownersData, isLoading: isLoadingOwners } = useAdminListOwnersQuery(undefined, { skip: !isAdminView });
+    const {data: ownersData, isLoading: isLoadingOwners} = useAdminListOwnersQuery(undefined, {skip: !isAdminView});
 
 
     useEffect(() => {
@@ -150,7 +153,7 @@ const OwnerManageWeddingHallPage = ({mode}) => {
         try {
             let response;
             if (mode === 'create') {
-                response = isAdminView ? await createAdminHall(formData).unwrap() : await createOwnerHall(formData).unwrap();
+                response = isAdminView ? await createAdminHall({data: formData}).unwrap() : await createOwnerHall({data: formData}).unwrap();
                 alert('Wedding hall created successfully! It may require admin approval.');
             } else { // mode === 'edit'
                 formData.append('_method', 'PUT');
@@ -168,15 +171,14 @@ const OwnerManageWeddingHallPage = ({mode}) => {
 
     const isLoadingMutation = isCreatingOwner || isUpdatingOwner || isCreatingAdmin || isUpdatingAdmin;
     const submissionError = createOwnerError || updateOwnerError || createAdminError || updateAdminError;
-    const pageLoading = isLoadingDistricts || (mode === 'edit' && isLoadingHallDetails); /*|| (isAdminView && isLoadingOwners)*/
-
+    const pageLoading = isLoadingDistricts || (mode === 'edit' && isLoadingHallDetails) || (isAdminView && isLoadingOwners);
     const inputClass = "mt-1 block w-full py-2.5 px-3.5 border border-gray-300 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-primary sm:text-sm transition-colors";
     const labelClass = "block text-sm font-medium text-gray-700";
 
     if (pageLoading) return <LoadingSpinner message="Loading hall data..."/>;
 
     const districts = districtsResponse?.data || [];
-    // const ownersList = ownersData?.data || [];
+    const ownersList = ownersData?.data || [];
 
     return (
         <div className="bg-white p-6 md:p-8 rounded-xl shadow-xl max-w-4xl mx-auto">
@@ -238,15 +240,14 @@ const OwnerManageWeddingHallPage = ({mode}) => {
                     {isAdminView && (
                         <div className="md:col-span-2">
                             <label htmlFor="wh-ownerId" className={labelClass}>Assign Owner (User ID):</label>
-                            <input type="number" id="wh-ownerId" className={inputClass} value={ownerId}
-                                   onChange={(e) => setOwnerId(e.target.value)} placeholder="Enter User ID of Owner"
-                                   required={isAdminView}/>
-                            {/*
                             <select id="wh-ownerId" className={inputClass} value={ownerId} onChange={(e) => setOwnerId(e.target.value)} required={isAdminView}>
                                 <option value="">Select Owner</option>
-                                {ownersList.map(owner => (<option key={owner.id} value={owner.id.toString()}>{owner.name} (ID: {owner.id})</option>))}
+                                {ownersList && ownersList.map(owner => (
+                                    <option key={owner.id} value={owner.id.toString()}>
+                                        {owner.name} (ID: {owner.id})
+                                    </option>
+                                ))}
                             </select>
-                            */}
                         </div>
                     )}
                 </div>
