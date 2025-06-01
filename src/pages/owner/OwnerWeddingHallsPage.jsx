@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useGetOwnerWeddingHallsQuery } from '../../features/owner/ownerApi';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
-import { PlusCircleIcon, EyeIcon, PencilIcon, BuildingOfficeIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon } from '@heroicons/react/24/solid';
+import { PlusCircleIcon, EyeIcon, PencilIcon, BuildingOfficeIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon, PhotoIcon } from '@heroicons/react/24/solid';
 
 const OwnerWeddingHallsPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
@@ -112,7 +112,7 @@ const OwnerWeddingHallsPage = () => {
                                 <img src={hall.images[0].image_path.startsWith('http') ? hall.images[0].image_path : `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}${hall.images[0].image_path}`} alt={hall.name} className="w-full h-56 object-cover"/>
                             ) : (
                                 <div className="w-full h-56 bg-gray-200 flex items-center justify-center">
-                                    <PhotographIcon className="h-16 w-16 text-gray-400"/>
+                                    <PhotoIcon className="h-16 w-16 text-gray-400"/>
                                 </div>
                             )}
                             <div className="p-6 flex-grow">

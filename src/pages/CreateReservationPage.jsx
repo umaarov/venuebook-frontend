@@ -137,13 +137,13 @@ const CreateReservationPage = () => {
                         </div>
                         <div>
                             <label htmlFor="cr-startTime" className={labelClass}>Start Time <span
-                                className="text-xs text-gray-500">(Optional)</span>:</label>
+                                className="text-xs text-gray-500"></span>:</label>
                             <input type="time" id="cr-startTime" className={inputClass} value={startTime}
                                    onChange={(e) => setStartTime(e.target.value)}/>
                         </div>
                         <div>
                             <label htmlFor="cr-endTime" className={labelClass}>End Time <span
-                                className="text-xs text-gray-500">(Optional)</span>:</label>
+                                className="text-xs text-gray-500"></span>:</label>
                             <input type="time" id="cr-endTime" className={inputClass} value={endTime}
                                    onChange={(e) => setEndTime(e.target.value)}/>
                         </div>
